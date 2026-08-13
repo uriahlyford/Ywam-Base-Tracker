@@ -19,9 +19,9 @@ ministries in one province fills four cards under that province.
 
 The totals screen labels these separately and never blends them.
 
-- **School students and fruit — calendar year 2025.** "How many students go
-  through our schools in a year" only has a clean answer once the year is
-  closed.
+- **Training school graduates and fruit — calendar year 2025.** "How many
+  students graduated from our schools in a year" only has a clean answer once the
+  year is closed.
 - **Everything else — as it stands today.** Staff, sports, English classes,
   villages, churches served and led. These are numbers a leader can give from
   memory without going back through records, and a stale figure helps nobody.
@@ -30,7 +30,7 @@ Change the year in one place, `public/options.js`, and every label follows.
 
 ## What it asks
 
-Fifteen questions per ministry, and a leader with four ministries answers them
+Fourteen questions per ministry, and a leader with four ministries answers them
 four times — so every one of them has to earn its place.
 
 Per ministry: name, its leader, province, and what kind of ministry it is
@@ -42,8 +42,12 @@ reached in a normal week; villages gone into; churches served and churches led,
 kept as separate questions because supporting a church and pastoring one are
 different things.
 
-Then **2025**: students through the schools and courses, how many graduated, new
-believers, baptisms.
+Then **2025**: students graduated from our YWAM training schools, new believers,
+baptisms.
+
+Graduates rather than enrolments, on purpose. A leader knows how many finished;
+how many started is a number they'd have to go and look up, and it counts people
+who dropped out as reach they didn't have.
 
 Then in their own words: the biggest need right now.
 

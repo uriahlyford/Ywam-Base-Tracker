@@ -33,7 +33,7 @@ const CURRENT_COUNTS = [
 
 // Counts that belong to the reporting year.
 const YEAR_COUNTS = [
-  "schoolStudents", "schoolGraduates", "newBelievers", "baptisms",
+  "schoolGraduates", "newBelievers", "baptisms",
 ];
 
 const SHORT_TEXTS = ["name", "leaderName", "typeOther"];

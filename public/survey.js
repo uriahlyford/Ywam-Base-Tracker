@@ -80,7 +80,6 @@
       churchesServed: "",
       churchesLed: "",
       // for the reporting year
-      schoolStudents: "",
       schoolGraduates: "",
       newBelievers: "",
       baptisms: "",
@@ -133,7 +132,6 @@
         // in it. The two numbers that replaced it are exactly their sums, so add
         // them up rather than making the leader type them in again.
         if (Array.isArray(m.schools) && m.schools.length) {
-          if (fresh.schoolStudents === "") fresh.schoolStudents = sumRows(m.schools, "students");
           if (fresh.schoolGraduates === "") fresh.schoolGraduates = sumRows(m.schools, "graduates");
         }
         return fresh;
@@ -427,8 +425,7 @@
       '<div class="sect">' +
         '<div class="sect-title">' + YEAR + "</div>" +
         '<p class="field-note">Skip anything that didn\'t happen.</p>' +
-        numField(m, "schoolStudents", "Students through your schools and courses in " + YEAR, "optional") +
-        numField(m, "schoolGraduates", "How many of them graduated", "optional") +
+        numField(m, "schoolGraduates", "Students graduated from our YWAM training schools", "optional") +
         '<div class="pair" style="margin-top:14px">' +
           numField(m, "newBelievers", "New believers", "optional") +
           numField(m, "baptisms", "Baptisms", "optional") +
@@ -458,7 +455,7 @@
         var facts = [];
         if (m.staffTotal !== "") facts.push(n(m.staffTotal) + " staff");
         if (m.peopleWeekly !== "") facts.push(fmt(n(m.peopleWeekly)) + " people a week");
-        if (m.schoolStudents !== "") facts.push(fmt(n(m.schoolStudents)) + " school students in " + YEAR);
+        if (m.schoolGraduates !== "") facts.push(fmt(n(m.schoolGraduates)) + " school graduates in " + YEAR);
         if (m.churchesServed !== "" || m.churchesLed !== "") {
           facts.push(n(m.churchesServed) + " churches served, " + n(m.churchesLed) + " led");
         }
@@ -529,7 +526,7 @@
     "staffTotal", "staffCambodian", "peopleWeekly", "villagesReached",
     "churchesServed", "churchesLed",
   ];
-  var YEAR_SUMS = ["schoolStudents", "schoolGraduates", "newBelievers", "baptisms"];
+  var YEAR_SUMS = ["schoolGraduates", "newBelievers", "baptisms"];
 
   function totalsFor(reports) {
     var t = { reports: reports.length, ministries: 0, provinces: 0, byType: {}, byProvince: {} };
@@ -644,7 +641,7 @@
         tile(t.ministries, "ministries") +
         tile(t.staffTotal, "staff") +
         tile(t.peopleWeekly, "people reached in a normal week") +
-        tile(t.schoolStudents, "school students in " + YEAR) +
+        tile(t.schoolGraduates, "YWAM training school graduates in " + YEAR) +
         tile(t.churchesServed + t.churchesLed, "local churches served or led") +
       "</div>" +
 
@@ -669,8 +666,7 @@
       ]) +
 
       statCard(String(YEAR), [
-        [t.schoolStudents, "students through our schools and courses"],
-        [t.schoolGraduates, "graduated"],
+        [t.schoolGraduates, "students graduated from our YWAM training schools"],
         [t.newBelievers, "new believers"],
         [t.baptisms, "baptisms"],
       ]) +
@@ -722,8 +718,7 @@
     ["Villages reached", function (r, m) { return m.villagesReached; }],
     ["Churches served", function (r, m) { return m.churchesServed; }],
     ["Churches led", function (r, m) { return m.churchesLed; }],
-    ["School students " + YEAR, function (r, m) { return m.schoolStudents; }],
-    ["Graduates " + YEAR, function (r, m) { return m.schoolGraduates; }],
+    ["Training school graduates " + YEAR, function (r, m) { return m.schoolGraduates; }],
     ["New believers " + YEAR, function (r, m) { return m.newBelievers; }],
     ["Baptisms " + YEAR, function (r, m) { return m.baptisms; }],
     ["Biggest need", function (r, m) { return m.biggestNeed; }],
