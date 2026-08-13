@@ -123,12 +123,24 @@ function slug(name) {
     .slice(0, 60);
 }
 
-// Anyone with the link can read the totals. The survey collects no contact
-// details, so there is nothing here to hold back and nothing to authenticate.
+// Anyone with the link can read the totals. The survey no longer collects
+// contact details, so there is nothing to authenticate a reader against.
+//
+// Reports filed before the field was removed may still carry a leaderContact,
+// and those were given on the promise that they stayed out of the open view, so
+// they are stripped here on the way out. This is not dead code until the store
+// has been checked; it costs one destructure per report and keeps a past
+// leader's phone number from being published by a change made after they gave
+// it. A leader who resubmits overwrites their report without the field.
 async function handleGet(s) {
   const { blobs } = await s.list({ prefix: "report:" });
   const reports = await Promise.all(
-    blobs.map((b) => s.get(b.key, { type: "json" }))
+    blobs.map(async (b) => {
+      const data = await s.get(b.key, { type: "json" });
+      if (!data) return null;
+      const { leaderContact, ...open } = data;
+      return open;
+    })
   );
 
   return Response.json(
