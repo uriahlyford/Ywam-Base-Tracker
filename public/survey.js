@@ -43,8 +43,9 @@
   // ---------- state ----------
 
   var state = {
-    // The totals are what most people open this for — a leader filling in a
-    // report is the rarer visit, and they arrive knowing they came to do it.
+    // The landing page. Most people open this to see where YWAM Cambodia is at;
+    // the handful of leaders filing a report arrive knowing they came to do it,
+    // and they see the national picture before being asked for anything.
     tab: "results",
     step: "you", // you | ministries | review | done
     report: blankReport(),
@@ -567,10 +568,15 @@
   // ---------- the totals screen ----------
 
   function renderResults() {
+    // This is the landing page, so a failed load must not be a dead end — the
+    // way into the form stays on screen.
     if (state.resultsError) {
       return (
-        '<div class="card"><div class="error">' + esc(state.resultsError) + "</div>" +
-          '<button class="btn" data-action="load-results">Try again</button></div>'
+        '<div class="card">' +
+          '<div class="error">' + esc(state.resultsError) + "</div>" +
+          '<button class="btn-ghost" data-action="load-results">Try again</button>' +
+        "</div>" +
+        reportButton()
       );
     }
     if (state.loadingResults || !state.results) return '<div class="loading">Loading…</div>';
@@ -578,28 +584,23 @@
     var reports = state.results;
     var t = totalsFor(reports);
 
+    // Day one, this page is the only explanation of the survey anybody gets, so
+    // the empty state says what is being counted rather than just "no data".
     if (!t.ministries) {
       return (
         '<section class="hero hero-empty">' +
-          '<div class="hero-top">' +
-            '<span class="hero-mark" aria-hidden="true">' +
-              '<svg viewBox="0 0 40 40" width="30" height="30">' +
-                '<rect width="40" height="40" rx="11" fill="currentColor" />' +
-                '<g stroke="#1B1310" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
-                  '<circle cx="20" cy="15.5" r="4" />' +
-                  '<path d="M11 30.5c0-5 4-8.5 9-8.5s9 3.5 9 8.5" />' +
-                "</g>" +
-              "</svg>" +
-            "</span>" +
-            '<span class="hero-org">YWAM Cambodia</span>' +
+          heroTop() +
+          '<div class="hero-figure">' +
+            '<div class="hero-num num">—</div>' +
+            '<div class="hero-cap">no reports in yet</div>' +
           "</div>" +
-          '<div class="hero-figure"><div class="hero-num num">—</div>' +
-            '<div class="hero-cap">no reports in yet</div></div>' +
-          '<p class="hero-foot">This page fills in as leaders send theirs. Yours can be the first.</p>' +
+          '<p class="hero-foot">Each regional leader reports the ministries they oversee. As those ' +
+            "come in, this page adds them up into one national picture.</p>" +
         "</section>" +
-        '<div class="glance-actions">' +
-          '<button class="btn" data-action="to-ministries">Start my report</button>' +
-        "</div>"
+
+        section("What it will show", "", goalList()) +
+
+        '<div class="glance-actions">' + reportButton() + "</div>"
       );
     }
 
@@ -682,8 +683,15 @@
         '<div class="who">' + who + "</div>" +
       "</div>" +
 
+      '<div class="cta">' +
+        reportButton() +
+        (PROVINCES.length - t.provinces > 0
+          ? '<p class="cta-note">' + (PROVINCES.length - t.provinces) + " of the " +
+            PROVINCES.length + " provinces haven't been reported on yet.</p>"
+          : "") +
+      "</div>" +
+
       '<div class="glance-actions">' +
-        '<button class="btn" data-action="to-ministries">Add my report</button>' +
         '<button class="btn-ghost" data-action="download-csv">Download as a spreadsheet</button>' +
         '<button class="btn-ghost" data-action="load-results">Refresh</button>' +
       "</div>"
@@ -702,18 +710,7 @@
 
     return (
       '<section class="hero">' +
-        '<div class="hero-top">' +
-          '<span class="hero-mark" aria-hidden="true">' +
-            '<svg viewBox="0 0 40 40" width="30" height="30">' +
-              '<rect width="40" height="40" rx="11" fill="currentColor" />' +
-              '<g stroke="#1B1310" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
-                '<circle cx="20" cy="15.5" r="4" />' +
-                '<path d="M11 30.5c0-5 4-8.5 9-8.5s9 3.5 9 8.5" />' +
-              "</g>" +
-            "</svg>" +
-          "</span>" +
-          '<span class="hero-org">YWAM Cambodia</span>' +
-        "</div>" +
+        heroTop() +
 
         '<div class="hero-figure">' +
           '<div class="hero-num num">' + fmt(t.staffTotal) + "</div>" +
@@ -731,6 +728,25 @@
         '<p class="hero-foot">Built from ' + t.reports + " " + plural(t.reports, "report", "reports") +
           ". Staff, ministries and reach are as they stand today; graduates and fruit are for " + YEAR + ".</p>" +
       "</section>"
+    );
+  }
+
+  // The lockup at the top of the dark panel. This is the app's own mark, not the
+  // YWAM logo — drop the real asset in here when there is one.
+  function heroTop() {
+    return (
+      '<div class="hero-top">' +
+        '<span class="hero-mark" aria-hidden="true">' +
+          '<svg viewBox="0 0 40 40" width="30" height="30">' +
+            '<rect width="40" height="40" rx="11" fill="currentColor" />' +
+            '<g stroke="#1B1310" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+              '<circle cx="20" cy="15.5" r="4" />' +
+              '<path d="M11 30.5c0-5 4-8.5 9-8.5s9 3.5 9 8.5" />' +
+            "</g>" +
+          "</svg>" +
+        "</span>" +
+        '<span class="hero-org">YWAM Cambodia</span>' +
+      "</div>"
     );
   }
 
@@ -772,6 +788,33 @@
   // Most of these fields are optional, so a zero almost always means "nobody
   // filled it in" rather than "none". Printing a column of zeros would read as a
   // real finding, so an unreported line is left out and the card says how many.
+  // The six figures the tiles hold once reports arrive — the survey's whole
+  // purpose, in the order the tiles show them. Keep this list and the tiles in
+  // step; it's the promise the landing page makes about what it will fill in.
+  function goalList() {
+    var goals = [
+      "How many provinces we are in",
+      "How many staff we are, and how many of us are Cambodian",
+      "How many people we reach in a normal week",
+      "How many students graduated from our YWAM training schools in " + YEAR,
+      "What kinds of ministry we reach them through — sports, English, kids clubs, and the rest",
+      "How many local churches we serve, and how many we lead",
+    ];
+    return '<ul class="goals">' +
+      goals.map(function (g) { return "<li>" + esc(g) + "</li>"; }).join("") +
+      "</ul>";
+  }
+
+  // The one thing to do after reading the totals. The wording follows whether
+  // there's already a draft on this phone, so a leader coming back mid-report
+  // isn't invited to "add" one they have half written.
+  function reportButton() {
+    var r = state.report;
+    var started = r.ministries.length || r.provinceIds.length || r.leaderName.trim();
+    return '<button class="btn" data-action="start-report">' +
+      (started ? "Continue my report" : "Add my report") + "</button>";
+  }
+
   function statCard(title, lines) {
     var shown = lines.filter(function (l) { return l[0] > 0; });
     if (!shown.length) return "";
@@ -1045,6 +1088,14 @@
         state.error = "";
         render();
         break;
+      case "start-report":
+        // Straight to the ministry cards if the provinces are already picked,
+        // otherwise to step 1. Either way, out of the totals and into the form.
+        state.tab = "form";
+        state.step = state.report.provinceIds.length ? "ministries" : "you";
+        state.error = "";
+        render();
+        break;
       case "to-review":
         state.step = "review";
         state.error = "";
@@ -1099,8 +1150,6 @@
 
   loadDraft();
   if (state.report.ministries.length || state.report.provinceIds.length) state.step = "ministries";
-  render();
-  // The landing screen is the totals, so they have to be on their way before
-  // anyone taps anything.
+  // loadResults renders, including the loading state — no separate first paint.
   loadResults();
 })();
