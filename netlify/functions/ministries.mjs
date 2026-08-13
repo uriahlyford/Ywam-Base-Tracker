@@ -1,7 +1,6 @@
 import { getStore } from "@netlify/blobs";
 
 const STORE_NAME = "ywam-ministry-survey";
-const DEFAULT_PASSCODE = "ywam2026";
 
 // A regional leader reports for a handful of provinces with a few ministries in
 // each. These caps are far above any real report and exist only so a bug or a
@@ -42,10 +41,6 @@ const LONG_TEXTS = ["biggestNeed"];
 
 function store() {
   return getStore(STORE_NAME);
-}
-
-function getPasscode() {
-  return Netlify.env.get("SURVEY_PASSCODE") || DEFAULT_PASSCODE;
 }
 
 function text(v, max) {
@@ -132,10 +127,6 @@ async function handlePost(s, req) {
     body = await req.json();
   } catch {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
-  }
-
-  if (body.passcode !== getPasscode()) {
-    return Response.json({ error: "Incorrect team passcode." }, { status: 401 });
   }
 
   const raw = body.report || {};

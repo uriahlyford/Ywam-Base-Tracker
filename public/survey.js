@@ -25,7 +25,6 @@
   "use strict";
 
   var DRAFT_KEY = "ywam-survey-draft-v1";
-  var PASS_KEY = "ywam-survey-passcode";
   var YEAR = window.REPORT_YEAR;
 
   var PROVINCES = window.PROVINCES || [];
@@ -48,7 +47,6 @@
     step: "you", // you | ministries | review | done
     report: blankReport(),
     openMinistry: null,
-    passcode: localStorage.getItem(PASS_KEY) || "",
     error: "",
     busy: false,
     results: null,
@@ -497,10 +495,6 @@
           '<label class="label" for="f-notes">Anything else we should know <span class="label-hint">optional</span></label>' +
           '<textarea id="f-notes" data-bind="notes">' + esc(r.notes) + "</textarea>" +
         "</div>" +
-        '<div class="field" style="margin-bottom:0">' +
-          '<label class="label" for="f-pass">Team passcode</label>' +
-          '<input type="password" id="f-pass" data-pass value="' + esc(state.passcode) + '" autocomplete="off" />' +
-        "</div>" +
       "</div>" +
       '<div class="btn-row">' +
         '<button class="btn-ghost" data-action="to-ministries">Back</button>' +
@@ -799,12 +793,6 @@
       render();
       return;
     }
-    if (!state.passcode) {
-      state.error = "The team passcode is missing.";
-      render();
-      return;
-    }
-
     state.busy = true;
     state.error = "";
     render();
@@ -812,7 +800,7 @@
     fetch("/api/ministries", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ passcode: state.passcode, report: reportForSubmit() }),
+      body: JSON.stringify({ report: reportForSubmit() }),
     })
       .then(function (res) {
         return res.json().then(function (data) { return { ok: res.ok, data: data }; });
@@ -824,7 +812,6 @@
           render();
           return;
         }
-        try { localStorage.setItem(PASS_KEY, state.passcode); } catch (e) { /* ignore */ }
         state.error = "";
         state.step = "done";
         state.results = null;
@@ -842,9 +829,6 @@
     state.loadingResults = true;
     render();
 
-    // Anyone with the link can read the totals, and the survey holds nothing
-    // back from them, so this goes out without the passcode. Keeping it out of
-    // the query string keeps it out of proxy and access logs too.
     fetch("/api/ministries")
       .then(function (res) {
         return res.json().then(function (data) { return { ok: res.ok, data: data }; });
@@ -875,10 +859,6 @@
     var el = e.target;
     if (!el || !el.dataset) return;
 
-    if (el.dataset.pass !== undefined) {
-      state.passcode = el.value;
-      return;
-    }
     if (el.dataset.bind) {
       state.report[el.dataset.bind] = el.value;
       saveDraft();

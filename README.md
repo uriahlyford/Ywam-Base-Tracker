@@ -67,14 +67,32 @@ nobody reads costs the same to fill in as one that gets used.
 ## Access
 
 - **Reading the totals is open** to anyone with the link.
-- **Submitting needs the shared team passcode**, set via the `SURVEY_PASSCODE`
-  environment variable in the Netlify site settings. It falls back to `ywam2026`
-  if unset — set the real one in Netlify so it stays out of this repository.
+- **So is submitting.** There is no passcode. A leader opens the link, fills the
+  form and sends it — nothing to remember, nothing to pass around a team, and
+  nothing to reset when it leaks. A passcode written on a shared link is not a
+  door lock anyway, and it was one more thing to get wrong on a phone.
 - **No contact details are collected.** The survey asks a leader for their name
   and their role, and nothing that could be used to reach them — so there is
   nothing in the store to hold back, and the totals can be read by anyone with
   the link without exposing anybody. Follow-up questions go through the channels
   the team already uses.
+
+### What that costs
+
+Anyone who finds the link can file a report, and the store has no way to tell a
+regional leader from a stranger. Two things follow, and they are accepted rather
+than solved:
+
+- A report is keyed by the reporting leader's name, so a submission under a name
+  already in the store **replaces** what is there. Someone typing a name that
+  already exists overwrites that leader's report.
+- Nothing stops junk being added. The function still caps counts, drops unknown
+  province and ministry-type ids and length-limits text, so a bad report is
+  bounded — but it is stored.
+
+The mitigation is that reports are few, named, and read by people who know who
+should be in the list. A total that looks wrong is traceable to the name on it,
+and the leader can resend to correct it.
 
 ## Sending it again
 
@@ -115,10 +133,11 @@ no build command, no publish directory and no **Base directory** — the
 `netlify.toml` at the root publishes `public/` and picks up the function. Pushing
 to the default branch triggers a deploy.
 
-The one setting to fill in is `SURVEY_PASSCODE`, under **Site configuration →
-Environment variables**. Until it's set the passcode falls back to `ywam2026`,
-which is written down in this public repository — so set it, then **Deploys →
-Trigger deploy** so the function picks it up.
+There is nothing to configure — no environment variables, no secrets. The site
+is live at <https://ywamstaff.netlify.app>.
+
+If a `SURVEY_PASSCODE` variable is still set on the site from an earlier version,
+it is now ignored and can be deleted.
 
 ## Local development
 
