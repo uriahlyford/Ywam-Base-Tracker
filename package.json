@@ -1,8 +1,8 @@
 {
-  "name": "vision-2033",
+  "name": "ywam-cambodia-ministry-survey",
   "private": true,
-  "version": "2.0.0",
-  "description": "One church leader per Cambodian province submits their best estimate of how many Christians are in their province, and how sure they are of it.",
+  "version": "1.0.0",
+  "description": "Each YWAM Cambodia regional leader reports the ministries they oversee — where they are, who leads them, how many staff, and who they reach.",
   "dependencies": {
     "@netlify/blobs": "^10.7.12"
   }

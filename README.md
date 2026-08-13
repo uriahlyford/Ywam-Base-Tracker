@@ -1,99 +1,113 @@
-# Vision 2033 — Christians in Cambodia
+# YWAM Cambodia — Ministry Survey
 
-One church leader per province submits two figures — roughly how many Christians
-they think are in their province, and how many of its villages have a church —
-plus **how sure they are**, 1 to 10.
+Six or so regional leaders each report the ministries they oversee. One of them
+covers Phnom Penh, Kampot, Kampong Cham and Takeo; Kampot alone has three
+ministries with three different leaders. Another covers Battambang, Pursat,
+Preah Vihear and Kampong Chhnang. The Siem Reap base leader reports the campus
+plus three ministries outside it, each with its own leader and its own villages.
 
-Four screens:
+So the form is shaped like the organisation, not like a flat questionnaire:
 
-- **Total** — the running number, villages reached, and which provinces have reported
-- **Submit** — province, the two figures, confidence, your name, team passcode
-- **Villages** — the full registry: mark village by village which ones have a church
-- **2033** — secondary: how far the reported provinces are from the 10% goal
+```
+you  ->  the provinces you report for  ->  a card per ministry inside each
+```
 
-Available in English and Khmer.
+Every ministry card carries its own leader, staff, and reach. A leader with four
+ministries in one province fills four cards under that province.
 
-## Two numbers, kept apart
+## Two reporting windows, kept apart
 
-The app carries two counts of villages with a church and never blends them:
+The totals screen labels these separately and never blends them.
 
-- **Estimated** — the leader's own figure from the Submit form, available immediately
-- **Confirmed** — the count of villages actually ticked in the registry, which grows
-  slowly and is only as complete as the work behind it
+- **Training schools, teams and fruit — calendar year 2025.** "How many students
+  go through our schools in a year" only has a clean answer once the year is
+  closed.
+- **Everything else — as it stands today.** Staff, sports, English classes,
+  villages, churches served and led. These are numbers a leader can give from
+  memory without going back through records, and a stale figure helps nobody.
 
-Both appear on the Total screen, labelled. Early on the confirmed number will be far
-lower — that gap is real information about coverage, not an error to be smoothed over.
+Change the year in one place, `public/options.js`, and every label follows.
 
-## The village figure
+## What it asks
 
-Leaders are never asked how many villages their province has — the app already
-knows. Picking a province fills in the official NCDD gazetteer count (Kep has 18,
-Kampong Speu has 1,363), and the leader only estimates how many of those have a
-church. The count is validated against that official figure on both the client
-and the server, so a province can't report more villages with churches than it
-has villages.
+Per ministry: name, its leader, province, whether it's on the base or a separate
+location, the year it started, and what kind of ministry it is (sports, English,
+kids clubs, church planting, media, health, vocational, justice, and a dozen
+more — tick as many as apply).
 
-## Why confidence
+Then **right now**: total staff, split Cambodian / international and
+full-time / volunteer; children and youth reached on a normal day; students
+enrolled in classes; people of all ages reached in a normal week; villages gone
+into and their names; churches served and churches led, kept as separate
+questions because supporting a church and pastoring one are different things.
 
-A rough guess from a leader who knows their province is worth having, but only
-if you can tell it apart from a solid figure. The 1–10 rating travels with every
-number, so a total of 400,000 built from mostly 8s and 9s means something
-different from the same total built from 2s and 3s. Nothing is weighted or
-adjusted behind the scenes — the confidence is shown, not applied.
+Then **2025**: each school or course that ran, with students, Cambodian
+students and graduates per school; teams hosted; outreach teams sent; new
+believers; baptisms; churches planted.
 
-## What it deliberately doesn't do
+Then in their own words: biggest need, one prayer request.
 
-Provinces that haven't reported show as **Not yet reported** rather than an
-estimate. No research priors are filled in, because a number on screen anchors
-the next leader's guess. The total is honest about being partial: it always says
-how many of the 25 provinces it's built from.
+Only three fields are required — the ministry's name, who leads it, and the
+staff count. Everything else can be left blank, because a report that gets
+finished beats a report that's complete.
 
-## Data entry access
+## Access
 
-Submitting requires a shared team passcode, set via the `ENTRY_PASSCODE`
-environment variable in the Netlify site settings. It falls back to `vision2033`
-if unset. Setting `ENTRY_PASSCODE` in Netlify overrides the fallback and keeps
-the real passcode out of this public repository — prefer that to editing the
-default here. Viewing the total is open to anyone with the link.
+- **Reading the totals is open** to anyone with the link.
+- **Submitting needs the shared team passcode**, set via the `SURVEY_PASSCODE`
+  environment variable in the Netlify site settings. It falls back to `ywam2026`
+  if unset — set the real one in Netlify so it stays out of this repository.
+- Phone numbers and email addresses are the one thing held back from the open
+  view. They're returned only to a request carrying the passcode, so the link can
+  be shared without handing out contact details.
 
-## Language
+## Sending it again
 
-The Khmer translation uses standard Cambodian Protestant vocabulary
-(`គ្រិស្តបរិស័ទ` for Christians, `គ្រូគង្វាល` for pastor). It's a small set of
-strings now — **recommend a native Khmer-speaking leader read through
-`public/i18n.js` before wide distribution**.
+A report is filed under the name of the leader who sent it, so sending a second
+time replaces the first rather than doubling every ministry in it. Leaders can
+correct a number a week later without anyone having to clean up after them.
 
-Province names come from the official NCDD gazetteer's Khmer spellings.
+## Drafts
+
+Every keystroke is written to `localStorage`. These are long reports written on
+phones over the course of a day on connections that drop, so a half-finished
+report survives a closed tab, a dead battery, and a failed submit.
 
 ## Tech
 
 - Static frontend in `public/` — vanilla JS, no framework, no build step, no CDN
   scripts, so it works on a patchy connection
-- Two Netlify Functions backed by [Netlify Blobs](https://docs.netlify.com/blobs/overview/):
-  `entries.mjs` (`/api/entries`) for province reports, `villages.mjs`
-  (`/api/villages`) for registry ticks
-- `public/provinces.js` — the 25 provinces with Khmer names and reference populations
-- `public/data/villages/*.json` — the NCDD gazetteer, one file per province,
-  district → commune → village with Khmer and Latin names
+- One Netlify Function backed by [Netlify Blobs](https://docs.netlify.com/blobs/overview/):
+  `ministries.mjs` at `/api/ministries` — `GET` returns every report, `POST`
+  files one
+- The function re-validates everything the browser sends: unknown province and
+  ministry-type ids are dropped, counts are clamped, text is length-capped, and
+  a ministry without a name, leader and province is not stored at all
+- `public/provinces.js` — the 25 provinces, NCDD gazetteer spellings
+- `public/options.js` — the ministry and school vocabularies, and the reporting
+  year. Adding an id here means adding it to the matching allow-list in
+  `netlify/functions/ministries.mjs`, which drops ids it doesn't recognise.
 
-The registry never renders what isn't being looked at. Districts and communes stay
-collapsed until opened, and search replaces the tree rather than adding to it, so
-Kampong Speu's 1,363 villages cost nothing until someone drills into them.
+The **Download as a spreadsheet** button on the totals screen writes one row per
+ministry, with a UTF-8 BOM so Excel opens Khmer and accented names correctly, and
+a leading quote on any cell starting with `=`, `+`, `-` or `@` so a spreadsheet
+can't read a typed answer as a formula.
+
+## Deploying
+
+The survey is the whole repository, so a Netlify site pointed at this repo needs
+no build command, no publish directory and no **Base directory** — the
+`netlify.toml` at the root publishes `public/` and picks up the function. Pushing
+to the default branch triggers a deploy.
+
+The one setting to fill in is `SURVEY_PASSCODE`, under **Site configuration →
+Environment variables**. Until it's set the passcode falls back to `ywam2026`,
+which is written down in this public repository — so set it, then **Deploys →
+Trigger deploy** so the function picks it up.
 
 ## Local development
 
 ```
 npm install
 netlify dev
-```
-
-## Earlier version
-
-The v1 app also had research-based seed estimates per province and importers that
-pulled church locations from OpenStreetMap, Google Places and cambodiachurches.org.
-Those are still in git history at `e8a8dfb` and can come back:
-
-```
-git checkout e8a8dfb -- scripts                      # the church importers
-git checkout e8a8dfb -- public/data/seed-estimates.js
 ```
