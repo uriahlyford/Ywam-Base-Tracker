@@ -19,8 +19,8 @@ ministries in one province fills four cards under that province.
 
 The totals screen labels these separately and never blends them.
 
-- **Training schools, teams and fruit — calendar year 2025.** "How many students
-  go through our schools in a year" only has a clean answer once the year is
+- **School students and fruit — calendar year 2025.** "How many students go
+  through our schools in a year" only has a clean answer once the year is
   closed.
 - **Everything else — as it stands today.** Staff, sports, English classes,
   villages, churches served and led. These are numbers a leader can give from
@@ -30,26 +30,39 @@ Change the year in one place, `public/options.js`, and every label follows.
 
 ## What it asks
 
-Per ministry: name, its leader, province, whether it's on the base or a separate
-location, the year it started, and what kind of ministry it is (sports, English,
-kids clubs, church planting, media, health, vocational, justice, and a dozen
-more — tick as many as apply).
+Fifteen questions per ministry, and a leader with four ministries answers them
+four times — so every one of them has to earn its place.
 
-Then **right now**: total staff, split Cambodian / international and
-full-time / volunteer; children and youth reached on a normal day; students
-enrolled in classes; people of all ages reached in a normal week; villages gone
-into and their names; churches served and churches led, kept as separate
-questions because supporting a church and pastoring one are different things.
+Per ministry: name, its leader, province, and what kind of ministry it is
+(sports, English, kids clubs, church planting, media, health, vocational,
+justice, and a dozen more — tick as many as apply).
 
-Then **2025**: each school or course that ran, with students, Cambodian
-students and graduates per school; teams hosted; outreach teams sent; new
-believers; baptisms; churches planted.
+Then **right now**: total staff and how many of them are Cambodian; people
+reached in a normal week; villages gone into; churches served and churches led,
+kept as separate questions because supporting a church and pastoring one are
+different things.
 
-Then in their own words: biggest need, one prayer request.
+Then **2025**: students through the schools and courses, how many graduated, new
+believers, baptisms.
+
+Then in their own words: the biggest need right now.
 
 Only three fields are required — the ministry's name, who leads it, and the
 staff count. Everything else can be left blank, because a report that gets
 finished beats a report that's complete.
+
+### What it deliberately stopped asking
+
+An earlier version asked twenty-eight questions per ministry. The staff count
+was split four ways (Cambodian, international, full-time, volunteer), reach was
+asked three times over (daily youth, enrolled students, weekly people), and each
+training school got its own five-field row. It also asked for the town, the year
+the ministry started, whether it sat on the base, the names of every village, and
+a prayer request.
+
+All of that is gone. The rule applied: a question stays only if a leader can
+answer it from memory and the answer changes what the totals say. A breakdown
+nobody reads costs the same to fill in as one that gets used.
 
 ## Access
 
@@ -86,8 +99,8 @@ report survives a closed tab, a dead battery, and a failed submit.
   ministry-type ids are dropped, counts are clamped, text is length-capped, and
   a ministry without a name, leader and province is not stored at all
 - `public/provinces.js` — the 25 provinces, NCDD gazetteer spellings
-- `public/options.js` — the ministry and school vocabularies, and the reporting
-  year. Adding an id here means adding it to the matching allow-list in
+- `public/options.js` — the ministry-type vocabulary and the reporting year.
+  Adding an id here means adding it to `MINISTRY_TYPE_IDS` in
   `netlify/functions/ministries.mjs`, which drops ids it doesn't recognise.
 
 The **Download as a spreadsheet** button on the totals screen writes one row per

@@ -7,7 +7,6 @@ const DEFAULT_PASSCODE = "ywam2026";
 // each. These caps are far above any real report and exist only so a bug or a
 // bored visitor can't fill the store.
 const MAX_MINISTRIES = 60;
-const MAX_SCHOOLS = 15;
 const MAX_TEXT = 400;
 const MAX_LONG_TEXT = 2000;
 const MAX_COUNT = 1_000_000;
@@ -27,25 +26,19 @@ const MINISTRY_TYPE_IDS = new Set([
   "prayer", "other",
 ]);
 
-const SCHOOL_TYPE_IDS = new Set([
-  "dts", "sbs", "leadership", "evangelism", "children-ministry", "vocational",
-  "english-course", "other",
-]);
-
 // Counts collected as of today, whatever the reporting year.
 const CURRENT_COUNTS = [
-  "staffTotal", "staffCambodian", "staffInternational", "staffFullTime",
-  "staffVolunteer", "youthDaily", "peopleWeekly", "currentStudents",
-  "villagesReached", "churchesServed", "churchesLed",
+  "staffTotal", "staffCambodian", "peopleWeekly", "villagesReached",
+  "churchesServed", "churchesLed",
 ];
 
 // Counts that belong to the reporting year.
 const YEAR_COUNTS = [
-  "churchesPlanted", "newBelievers", "baptisms", "outreachTeams", "teamsHosted",
+  "schoolStudents", "schoolGraduates", "newBelievers", "baptisms",
 ];
 
-const SHORT_TEXTS = ["name", "leaderName", "town", "typeOther"];
-const LONG_TEXTS = ["villageNames", "biggestNeed", "prayerRequest"];
+const SHORT_TEXTS = ["name", "leaderName", "typeOther"];
+const LONG_TEXTS = ["biggestNeed"];
 
 function store() {
   return getStore(STORE_NAME);
@@ -66,17 +59,6 @@ function count(v) {
   return Math.round(Math.min(x, MAX_COUNT));
 }
 
-function cleanSchool(raw) {
-  const typeId = SCHOOL_TYPE_IDS.has(raw?.typeId) ? raw.typeId : "";
-  return {
-    typeId,
-    name: text(raw?.name, MAX_TEXT),
-    students: count(raw?.students),
-    cambodianStudents: count(raw?.cambodianStudents),
-    graduates: count(raw?.graduates),
-  };
-}
-
 function cleanMinistry(raw) {
   if (!raw || typeof raw !== "object") return null;
 
@@ -91,13 +73,8 @@ function cleanMinistry(raw) {
     provinceId,
     name,
     leaderName,
-    placement: raw.placement === "campus" || raw.placement === "offsite" ? raw.placement : "",
-    startedYear: count(raw.startedYear),
     types: Array.isArray(raw.types)
       ? [...new Set(raw.types.filter((t) => MINISTRY_TYPE_IDS.has(t)))]
-      : [],
-    schools: Array.isArray(raw.schools)
-      ? raw.schools.slice(0, MAX_SCHOOLS).map(cleanSchool).filter((s) => s.typeId || s.name || s.students !== "")
       : [],
   };
 

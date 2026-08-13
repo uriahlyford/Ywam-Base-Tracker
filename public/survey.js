@@ -10,11 +10,12 @@
 //
 // rather than one flat questionnaire.
 //
-// Two reporting windows, kept apart on purpose. Training schools are asked for
-// the closed calendar year, because "how many students go through our schools in
-// a year" only has a clean answer once the year is over. Everything else — staff,
-// sports, English classes, churches — is asked as it stands today, because that's
-// the number a leader can give from memory without digging through records.
+// Two reporting windows, kept apart on purpose. School students and fruit are
+// asked for the closed calendar year, because "how many students go through our
+// schools in a year" only has a clean answer once the year is over. Everything
+// else — staff, sports, English classes, churches — is asked as it stands today,
+// because that's the number a leader can give from memory without digging
+// through records.
 //
 // Every keystroke is written to a draft in localStorage. These are long reports
 // written on phones over the course of a day, often on a connection that drops;
@@ -29,7 +30,6 @@
 
   var PROVINCES = window.PROVINCES || [];
   var MINISTRY_TYPES = window.MINISTRY_TYPES || [];
-  var SCHOOL_TYPES = window.SCHOOL_TYPES || [];
 
   var provinceById = {};
   var provinceOrder = {};
@@ -40,9 +40,6 @@
 
   var typeById = {};
   MINISTRY_TYPES.forEach(function (t) { typeById[t.id] = t; });
-
-  var schoolById = {};
-  SCHOOL_TYPES.forEach(function (s) { schoolById[s.id] = s; });
 
   // ---------- state ----------
 
@@ -75,39 +72,23 @@
       provinceId: provinceId,
       name: "",
       leaderName: "",
-      placement: "",
-      town: "",
-      startedYear: "",
       types: [],
       typeOther: "",
       // as of today
       staffTotal: "",
       staffCambodian: "",
-      staffInternational: "",
-      staffFullTime: "",
-      staffVolunteer: "",
-      youthDaily: "",
       peopleWeekly: "",
-      currentStudents: "",
       villagesReached: "",
-      villageNames: "",
       churchesServed: "",
       churchesLed: "",
       // for the reporting year
-      schools: [],
-      teamsHosted: "",
-      outreachTeams: "",
-      churchesPlanted: "",
+      schoolStudents: "",
+      schoolGraduates: "",
       newBelievers: "",
       baptisms: "",
       // words
       biggestNeed: "",
-      prayerRequest: "",
     };
-  }
-
-  function blankSchool() {
-    return { id: uid(), typeId: "", name: "", students: "", cambodianStudents: "", graduates: "" };
   }
 
   var seq = 0;
@@ -150,20 +131,34 @@
           if (m[k] !== undefined && m[k] !== null) fresh[k] = m[k];
         });
         fresh.id = m.id || uid();
-        fresh.schools = (m.schools || []).map(function (s) {
-          var fs = blankSchool();
-          Object.keys(fs).forEach(function (k) {
-            if (s[k] !== undefined && s[k] !== null) fs[k] = s[k];
-          });
-          fs.id = s.id || uid();
-          return fs;
-        });
+        // A draft written against the old per-school sub-form still has the rows
+        // in it. The two numbers that replaced it are exactly their sums, so add
+        // them up rather than making the leader type them in again.
+        if (Array.isArray(m.schools) && m.schools.length) {
+          if (fresh.schoolStudents === "") fresh.schoolStudents = sumRows(m.schools, "students");
+          if (fresh.schoolGraduates === "") fresh.schoolGraduates = sumRows(m.schools, "graduates");
+        }
         return fresh;
       });
       state.report = base;
     } catch (e) {
       /* a corrupt draft is not worth a crash */
     }
+  }
+
+  // Only used to fold an old draft's school rows into the two numbers that
+  // replaced them. Returns "" for a set of rows that carried no figure at all,
+  // so an empty sub-form doesn't become a reported zero.
+  function sumRows(rows, key) {
+    var total = 0;
+    var any = false;
+    rows.forEach(function (row) {
+      if (row && row[key] !== "" && row[key] !== undefined && row[key] !== null) {
+        any = true;
+        total += n(row[key]);
+      }
+    });
+    return any ? total : "";
   }
 
   // ---------- helpers ----------
@@ -234,10 +229,6 @@
     if (!m.leaderName.trim()) missing.push("who leads it");
     if (m.staffTotal === "") missing.push("a staff count");
     return missing;
-  }
-
-  function schoolStudents(m) {
-    return (m.schools || []).reduce(function (a, s) { return a + n(s.students); }, 0);
   }
 
   // ---------- render ----------
@@ -404,16 +395,6 @@
         textField(m, "name", "Ministry name", "what you call it") +
         textField(m, "leaderName", "Who leads it", "the person responsible on the ground") +
         fieldWrap("Province", "", '<select data-min="' + m.id + '" data-key="provinceId">' + provinceOptions + "</select>") +
-        '<div class="pair">' +
-          fieldWrap("Where", "optional",
-            '<select data-min="' + m.id + '" data-key="placement">' +
-              '<option value=""' + (m.placement === "" ? " selected" : "") + ">—</option>" +
-              '<option value="campus"' + (m.placement === "campus" ? " selected" : "") + ">On the main base</option>" +
-              '<option value="offsite"' + (m.placement === "offsite" ? " selected" : "") + ">A separate location</option>" +
-            "</select>") +
-          textField(m, "town", "Town or district", "optional") +
-        "</div>" +
-        '<div style="margin-top:14px">' + numField(m, "startedYear", "Year it started", "optional") + "</div>" +
       "</div>" +
 
       '<div class="sect">' +
@@ -428,23 +409,15 @@
       '<div class="sect">' +
         '<div class="sect-title">Staff — right now</div>' +
         numField(m, "staffTotal", "Total staff in this ministry") +
-        '<div class="pair">' +
-          numField(m, "staffCambodian", "Cambodian", "optional") +
-          numField(m, "staffInternational", "International", "optional") +
-        "</div>" +
-        '<div class="pair" style="margin-top:14px">' +
-          numField(m, "staffFullTime", "Full-time", "optional") +
-          numField(m, "staffVolunteer", "Part-time / volunteer", "optional") +
+        '<div style="margin-top:14px">' +
+          numField(m, "staffCambodian", "Of those, how many are Cambodian", "optional") +
         "</div>" +
       "</div>" +
 
       '<div class="sect">' +
         '<div class="sect-title">Who you reach — right now</div>' +
-        numField(m, "youthDaily", "Children & youth you reach on a normal day", "a typical weekday, not a one-off event") +
-        numField(m, "currentStudents", "Students enrolled at the moment", "sports, English, tutoring — not the training schools below") +
-        numField(m, "peopleWeekly", "People of all ages you reach in a normal week", "optional") +
+        numField(m, "peopleWeekly", "People you reach in a normal week", "all ages — a typical week, not a one-off event") +
         numField(m, "villagesReached", "Villages or communities you go into", "optional") +
-        areaField(m, "villageNames", "Which villages", "optional — one per line, or separated by commas") +
       "</div>" +
 
       '<div class="sect">' +
@@ -454,67 +427,24 @@
       "</div>" +
 
       '<div class="sect">' +
-        '<div class="sect-title">Training schools in ' + YEAR + "</div>" +
-        '<p class="field-note">A row for each school or course that ran during ' + YEAR + ". Skip this if none did.</p>" +
-        m.schools.map(function (s, i) { return renderSchool(m, s, i); }).join("") +
-        '<button type="button" class="btn-add" data-add-school="' + m.id + '">+ Add a school or course</button>' +
-      "</div>" +
-
-      '<div class="sect">' +
-        '<div class="sect-title">Teams &amp; outreach in ' + YEAR + "</div>" +
-        numField(m, "teamsHosted", "Teams you hosted", "visiting teams that came to you during " + YEAR) +
-        numField(m, "outreachTeams", "Outreach teams you sent out", "optional") +
-      "</div>" +
-
-      '<div class="sect">' +
-        '<div class="sect-title">Fruit in ' + YEAR + "</div>" +
-        '<div class="pair">' +
+        '<div class="sect-title">' + YEAR + "</div>" +
+        '<p class="field-note">Skip anything that didn\'t happen.</p>' +
+        numField(m, "schoolStudents", "Students through your schools and courses in " + YEAR, "optional") +
+        numField(m, "schoolGraduates", "How many of them graduated", "optional") +
+        '<div class="pair" style="margin-top:14px">' +
           numField(m, "newBelievers", "New believers", "optional") +
           numField(m, "baptisms", "Baptisms", "optional") +
-        "</div>" +
-        '<div style="margin-top:14px">' +
-          numField(m, "churchesPlanted", "Churches planted", "optional") +
         "</div>" +
       "</div>" +
 
       '<div class="sect">' +
         '<div class="sect-title">In your words</div>' +
         areaField(m, "biggestNeed", "Biggest need right now", "optional") +
-        areaField(m, "prayerRequest", "One prayer request", "optional") +
       "</div>" +
 
       '<div class="sect min-actions">' +
         '<button type="button" class="btn-link" data-remove-ministry="' + m.id + '">Remove this ministry</button>' +
         '<button type="button" class="icon-btn" data-toggle-ministry="' + m.id + '">Done</button>' +
-      "</div>"
-    );
-  }
-
-  function renderSchool(m, s, i) {
-    var opts = ['<option value="">Which school?</option>']
-      .concat(SCHOOL_TYPES.map(function (t) {
-        return '<option value="' + t.id + '"' + (t.id === s.typeId ? " selected" : "") + ">" + esc(t.label) + "</option>";
-      }))
-      .join("");
-
-    function schoolNum(key, label, hint) {
-      return fieldWrap(label, hint,
-        '<input type="number" min="0" inputmode="numeric" data-min="' + m.id + '" data-school="' + s.id + '" data-key="' + key + '" value="' + esc(s[key]) + '" />');
-    }
-
-    return (
-      '<div class="school">' +
-        '<div class="school-head">' +
-          '<select data-min="' + m.id + '" data-school="' + s.id + '" data-key="typeId">' + opts + "</select>" +
-          '<button type="button" class="icon-btn" data-remove-school="' + s.id + '" data-min="' + m.id + '" aria-label="Remove school ' + (i + 1) + '">Remove</button>' +
-        "</div>" +
-        fieldWrap("School name", "optional",
-          '<input type="text" data-min="' + m.id + '" data-school="' + s.id + '" data-key="name" value="' + esc(s.name) + '" />') +
-        '<div class="pair">' +
-          schoolNum("students", "Students") +
-          schoolNum("cambodianStudents", "Cambodian", "optional") +
-        "</div>" +
-        '<div style="margin-top:14px">' + schoolNum("graduates", "Graduated", "optional") + "</div>" +
       "</div>"
     );
   }
@@ -529,10 +459,8 @@
         var missing = missingFrom(m);
         var facts = [];
         if (m.staffTotal !== "") facts.push(n(m.staffTotal) + " staff");
-        if (m.youthDaily !== "") facts.push(fmt(n(m.youthDaily)) + " young people a day");
-        var students = schoolStudents(m);
-        if (students) facts.push(students + " school students in " + YEAR);
-        if (m.teamsHosted !== "") facts.push(n(m.teamsHosted) + " teams hosted");
+        if (m.peopleWeekly !== "") facts.push(fmt(n(m.peopleWeekly)) + " people a week");
+        if (m.schoolStudents !== "") facts.push(fmt(n(m.schoolStudents)) + " school students in " + YEAR);
         if (m.churchesServed !== "" || m.churchesLed !== "") {
           facts.push(n(m.churchesServed) + " churches served, " + n(m.churchesLed) + " led");
         }
@@ -604,15 +532,13 @@
   // ---------- totals ----------
 
   var CURRENT_SUMS = [
-    "staffTotal", "staffCambodian", "staffInternational", "staffFullTime",
-    "staffVolunteer", "youthDaily", "peopleWeekly", "currentStudents",
-    "villagesReached", "churchesServed", "churchesLed",
+    "staffTotal", "staffCambodian", "peopleWeekly", "villagesReached",
+    "churchesServed", "churchesLed",
   ];
-  var YEAR_SUMS = ["teamsHosted", "outreachTeams", "churchesPlanted", "newBelievers", "baptisms"];
+  var YEAR_SUMS = ["schoolStudents", "schoolGraduates", "newBelievers", "baptisms"];
 
   function totalsFor(reports) {
-    var t = { reports: reports.length, ministries: 0, provinces: 0, schools: 0,
-      students: 0, cambodianStudents: 0, graduates: 0, byType: {}, byProvince: {} };
+    var t = { reports: reports.length, ministries: 0, provinces: 0, byType: {}, byProvince: {} };
     CURRENT_SUMS.concat(YEAR_SUMS).forEach(function (k) { t[k] = 0; });
 
     var provinceSeen = {};
@@ -623,30 +549,20 @@
         CURRENT_SUMS.forEach(function (k) { t[k] += n(m[k]); });
         YEAR_SUMS.forEach(function (k) { t[k] += n(m[k]); });
 
-        var students = 0;
-        (m.schools || []).forEach(function (s) {
-          t.schools += 1;
-          students += n(s.students);
-          t.cambodianStudents += n(s.cambodianStudents);
-          t.graduates += n(s.graduates);
-        });
-        t.students += students;
-
         (m.types || []).forEach(function (id) {
-          if (!t.byType[id]) t.byType[id] = { ministries: 0, staff: 0, youthDaily: 0 };
+          if (!t.byType[id]) t.byType[id] = { ministries: 0, staff: 0, weekly: 0 };
           t.byType[id].ministries += 1;
           t.byType[id].staff += n(m.staffTotal);
-          t.byType[id].youthDaily += n(m.youthDaily);
+          t.byType[id].weekly += n(m.peopleWeekly);
         });
 
         var pid = m.provinceId;
         if (!pid) return;
         provinceSeen[pid] = true;
-        if (!t.byProvince[pid]) t.byProvince[pid] = { ministries: 0, staff: 0, youthDaily: 0, students: 0 };
+        if (!t.byProvince[pid]) t.byProvince[pid] = { ministries: 0, staff: 0, weekly: 0 };
         t.byProvince[pid].ministries += 1;
         t.byProvince[pid].staff += n(m.staffTotal);
-        t.byProvince[pid].youthDaily += n(m.youthDaily);
-        t.byProvince[pid].students += students;
+        t.byProvince[pid].weekly += n(m.peopleWeekly);
       });
     });
 
@@ -712,7 +628,7 @@
               '<div class="row-by">' + row.ministries + " " + plural(row.ministries, "ministry", "ministries") + "</div>" +
             "</div>" +
             '<div class="row-num num">' + fmt(row.staff) + '<div class="row-cap">staff</div></div>' +
-            '<div class="row-num num">' + fmt(row.youthDaily) + '<div class="row-cap">a day</div></div>' +
+            '<div class="row-num num">' + fmt(row.weekly) + '<div class="row-cap">a week</div></div>' +
           "</div>"
         );
       }).join("");
@@ -726,15 +642,15 @@
       '<div class="step-head">' +
         '<h1 class="step-title">YWAM Cambodia today</h1>' +
         '<p class="step-sub">Built from ' + t.reports + " " + plural(t.reports, "report", "reports") +
-          ". Staff, ministries and the people we reach are as they stand today; training schools, teams and fruit are for " + YEAR + ".</p>" +
+          ". Staff, ministries and the people we reach are as they stand today; school students and fruit are for " + YEAR + ".</p>" +
       "</div>" +
 
       '<div class="tiles">' +
         tile(t.provinces, "provinces we are in") +
         tile(t.ministries, "ministries") +
         tile(t.staffTotal, "staff") +
-        tile(t.youthDaily, "young people reached every day") +
-        tile(t.students, "training school students in " + YEAR) +
+        tile(t.peopleWeekly, "people reached in a normal week") +
+        tile(t.schoolStudents, "school students in " + YEAR) +
         tile(t.churchesServed + t.churchesLed, "local churches served or led") +
       "</div>" +
 
@@ -753,26 +669,16 @@
 
       statCard("Right now", [
         [t.staffCambodian, "Cambodian staff"],
-        [t.staffInternational, "international staff"],
-        [t.staffFullTime, "full-time staff"],
-        [t.staffVolunteer, "part-time and volunteer staff"],
-        [t.currentStudents, "students enrolled in our classes and programmes"],
-        [t.peopleWeekly, "people reached in a normal week"],
         [t.villagesReached, "villages and communities we go into"],
         [t.churchesLed, "local churches led by our staff"],
         [t.churchesServed, "local churches we serve"],
       ]) +
 
       statCard(String(YEAR), [
-        [t.schools, "schools and courses run"],
-        [t.students, "students in them"],
-        [t.cambodianStudents, "of those students were Cambodian"],
-        [t.graduates, "graduated"],
-        [t.teamsHosted, "teams hosted"],
-        [t.outreachTeams, "outreach teams sent out"],
+        [t.schoolStudents, "students through our schools and courses"],
+        [t.schoolGraduates, "graduated"],
         [t.newBelievers, "new believers"],
         [t.baptisms, "baptisms"],
-        [t.churchesPlanted, "churches planted"],
       ]) +
 
       '<div class="card">' +
@@ -809,49 +715,24 @@
 
   // ---------- spreadsheet ----------
 
-  function sumSchools(m, key) {
-    return (m.schools || []).reduce(function (a, s) { return a + n(s[key]); }, 0);
-  }
-
   var CSV_COLUMNS = [
     ["Reported by", function (r) { return r.leaderName; }],
     ["Their role", function (r) { return r.leaderRole; }],
     ["Province", function (r, m) { return provinceName(m.provinceId); }],
     ["Ministry", function (r, m) { return m.name; }],
     ["Ministry leader", function (r, m) { return m.leaderName; }],
-    ["Location", function (r, m) {
-      return m.placement === "campus" ? "Main base" : m.placement === "offsite" ? "Separate location" : "";
-    }],
-    ["Town / district", function (r, m) { return m.town; }],
-    ["Started", function (r, m) { return m.startedYear; }],
     ["Ministry types", function (r, m) { return typeLabels(m).join("; "); }],
     ["Staff total", function (r, m) { return m.staffTotal; }],
     ["Staff Cambodian", function (r, m) { return m.staffCambodian; }],
-    ["Staff international", function (r, m) { return m.staffInternational; }],
-    ["Staff full-time", function (r, m) { return m.staffFullTime; }],
-    ["Staff volunteer", function (r, m) { return m.staffVolunteer; }],
-    ["Youth reached daily", function (r, m) { return m.youthDaily; }],
-    ["Students enrolled now", function (r, m) { return m.currentStudents; }],
     ["People reached weekly", function (r, m) { return m.peopleWeekly; }],
     ["Villages reached", function (r, m) { return m.villagesReached; }],
-    ["Village names", function (r, m) { return m.villageNames; }],
     ["Churches served", function (r, m) { return m.churchesServed; }],
     ["Churches led", function (r, m) { return m.churchesLed; }],
-    ["Schools run " + YEAR, function (r, m) {
-      return (m.schools || []).map(function (s) {
-        return (schoolById[s.typeId] ? schoolById[s.typeId].label : s.typeId || "School") + (s.name ? " (" + s.name + ")" : "");
-      }).join("; ");
-    }],
-    ["School students " + YEAR, function (r, m) { return sumSchools(m, "students"); }],
-    ["School students Cambodian " + YEAR, function (r, m) { return sumSchools(m, "cambodianStudents"); }],
-    ["Graduates " + YEAR, function (r, m) { return sumSchools(m, "graduates"); }],
-    ["Teams hosted " + YEAR, function (r, m) { return m.teamsHosted; }],
-    ["Outreach teams sent " + YEAR, function (r, m) { return m.outreachTeams; }],
-    ["Churches planted " + YEAR, function (r, m) { return m.churchesPlanted; }],
+    ["School students " + YEAR, function (r, m) { return m.schoolStudents; }],
+    ["Graduates " + YEAR, function (r, m) { return m.schoolGraduates; }],
     ["New believers " + YEAR, function (r, m) { return m.newBelievers; }],
     ["Baptisms " + YEAR, function (r, m) { return m.baptisms; }],
     ["Biggest need", function (r, m) { return m.biggestNeed; }],
-    ["Prayer request", function (r, m) { return m.prayerRequest; }],
     ["Submitted", function (r) { return (r.submittedAt || "").slice(0, 10); }],
   ];
 
@@ -892,9 +773,6 @@
       ministries: r.ministries.map(function (m) {
         var out = {};
         Object.keys(m).forEach(function (k) { out[k] = m[k]; });
-        out.schools = (m.schools || []).filter(function (s) {
-          return s.typeId || s.name || s.students !== "";
-        });
         return out;
       }),
     };
@@ -1022,13 +900,7 @@
     var m = findMinistry(el.dataset.min);
     if (!m) return;
 
-    if (el.dataset.school) {
-      var s = (m.schools || []).filter(function (x) { return x.id === el.dataset.school; })[0];
-      if (!s) return;
-      s[el.dataset.key] = el.value;
-    } else {
-      m[el.dataset.key] = el.value;
-    }
+    m[el.dataset.key] = el.value;
     saveDraft();
     refreshSummary(m);
   }
@@ -1044,7 +916,7 @@
 
   document.addEventListener("click", function (e) {
     var el = e.target.closest(
-      "[data-goto],[data-action],[data-province],[data-add-ministry],[data-toggle-ministry],[data-remove-ministry],[data-type],[data-add-school],[data-remove-school]"
+      "[data-goto],[data-action],[data-province],[data-add-ministry],[data-toggle-ministry],[data-remove-ministry],[data-type]"
     );
     if (!el) return;
     var d = el.dataset;
@@ -1095,24 +967,6 @@
       if (d.type === "other") { render(); return; }
       el.classList.toggle("on");
       refreshSummary(mt);
-      return;
-    }
-
-    if (d.addSchool) {
-      var ms = findMinistry(d.addSchool);
-      if (!ms) return;
-      ms.schools.push(blankSchool());
-      saveDraft();
-      render();
-      return;
-    }
-
-    if (d.removeSchool && d.min) {
-      var mr = findMinistry(d.min);
-      if (!mr) return;
-      mr.schools = mr.schools.filter(function (s) { return s.id !== d.removeSchool; });
-      saveDraft();
-      render();
       return;
     }
 
