@@ -63,7 +63,6 @@
     return {
       leaderName: "",
       leaderRole: "",
-      leaderContact: "",
       provinceIds: [],
       ministries: [],
       notes: "",
@@ -296,13 +295,9 @@
           '<label class="label" for="f-leaderName">Your name</label>' +
           '<input type="text" id="f-leaderName" data-bind="leaderName" value="' + esc(r.leaderName) + '" autocomplete="name" />' +
         "</div>" +
-        '<div class="field">' +
+        '<div class="field" style="margin-bottom:0">' +
           '<label class="label" for="f-leaderRole">Your role <span class="label-hint">e.g. Phnom Penh base leader</span></label>' +
           '<input type="text" id="f-leaderRole" data-bind="leaderRole" value="' + esc(r.leaderRole) + '" />' +
-        "</div>" +
-        '<div class="field" style="margin-bottom:0">' +
-          '<label class="label" for="f-leaderContact">Phone or email <span class="label-hint">so we can come back with questions</span></label>' +
-          '<input type="text" id="f-leaderContact" data-bind="leaderContact" value="' + esc(r.leaderContact) + '" />' +
         "</div>" +
       "</div>" +
       '<div class="card">' +
@@ -893,7 +888,6 @@
     return {
       leaderName: r.leaderName.trim(),
       leaderRole: r.leaderRole.trim(),
-      leaderContact: r.leaderContact.trim(),
       notes: r.notes.trim(),
       ministries: r.ministries.map(function (m) {
         var out = {};
@@ -970,11 +964,10 @@
     state.loadingResults = true;
     render();
 
-    // Anyone with the link can read the totals. The passcode is sent only so a
-    // leader who has one also gets the contact details back.
-    var url = "/api/ministries" + (state.passcode ? "?passcode=" + encodeURIComponent(state.passcode) : "");
-
-    fetch(url)
+    // Anyone with the link can read the totals, and the survey holds nothing
+    // back from them, so this goes out without the passcode. Keeping it out of
+    // the query string keeps it out of proxy and access logs too.
+    fetch("/api/ministries")
       .then(function (res) {
         return res.json().then(function (data) { return { ok: res.ok, data: data }; });
       })

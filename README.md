@@ -57,9 +57,11 @@ finished beats a report that's complete.
 - **Submitting needs the shared team passcode**, set via the `SURVEY_PASSCODE`
   environment variable in the Netlify site settings. It falls back to `ywam2026`
   if unset — set the real one in Netlify so it stays out of this repository.
-- Phone numbers and email addresses are the one thing held back from the open
-  view. They're returned only to a request carrying the passcode, so the link can
-  be shared without handing out contact details.
+- **No contact details are collected.** The survey asks a leader for their name
+  and their role, and nothing that could be used to reach them — so there is
+  nothing in the store to hold back, and the totals can be read by anyone with
+  the link without exposing anybody. Follow-up questions go through the channels
+  the team already uses.
 
 ## Sending it again
 

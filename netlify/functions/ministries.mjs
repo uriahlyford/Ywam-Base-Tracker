@@ -123,25 +123,16 @@ function slug(name) {
     .slice(0, 60);
 }
 
-async function handleGet(s, req) {
-  const url = new URL(req.url);
-  // Anyone with the link can read the totals. Contact details are the one thing
-  // held back — they only come through with the team passcode.
-  const trusted = url.searchParams.get("passcode") === getPasscode();
-
+// Anyone with the link can read the totals. The survey collects no contact
+// details, so there is nothing here to hold back and nothing to authenticate.
+async function handleGet(s) {
   const { blobs } = await s.list({ prefix: "report:" });
   const reports = await Promise.all(
-    blobs.map(async (b) => {
-      const data = await s.get(b.key, { type: "json" });
-      if (!data) return null;
-      if (trusted) return data;
-      const { leaderContact, ...open } = data;
-      return open;
-    })
+    blobs.map((b) => s.get(b.key, { type: "json" }))
   );
 
   return Response.json(
-    { reports: reports.filter(Boolean), trusted },
+    { reports: reports.filter(Boolean) },
     { headers: { "Cache-Control": "no-store" } }
   );
 }
@@ -182,7 +173,6 @@ async function handlePost(s, req) {
   const report = {
     leaderName,
     leaderRole: text(raw.leaderRole, MAX_TEXT),
-    leaderContact: text(raw.leaderContact, MAX_TEXT),
     notes: text(raw.notes, MAX_LONG_TEXT),
     ministries,
     firstSubmittedAt: existing?.firstSubmittedAt || new Date().toISOString(),
@@ -196,7 +186,7 @@ async function handlePost(s, req) {
 
 export default async (req) => {
   const s = store();
-  if (req.method === "GET") return handleGet(s, req);
+  if (req.method === "GET") return handleGet(s);
   if (req.method === "POST") return handlePost(s, req);
   return new Response("Method Not Allowed", { status: 405 });
 };
