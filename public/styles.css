@@ -3,17 +3,27 @@
    heavy effects that stutter on older Android hardware, no webfont dependency
    for the layout to work. */
 
+/* Palette and type follow uofnbattambang.com: black, white, and one blue doing
+   all the work; headings uppercase and heavy; a small letterspaced blue kicker
+   above them; solid blue rounded buttons in uppercase.
+
+   The one thing not copied is the webfont. That site loads a geometric sans;
+   this is opened on phones on Cambodian mobile data, where a blocking font from
+   another host is a slow first paint at best. The system stack carries the same
+   look through weight, uppercase and letterspacing instead. */
 :root {
-  --cream: #FBFAF8;
+  --cream: #FFFFFF;
   --card: #FFFFFF;
-  --ink: #241C18;
-  --ink-deep: #17100D;
-  --muted: #7A6E67;
-  --line: #EAE3DC;
-  --brand: #A9502F;
-  --brand-soft: #F6EAE3;
-  --gold: #D9A441;
-  --radius: 14px;
+  --surface: #F4F6F8;
+  --ink: #1A1A1A;
+  --ink-deep: #000000;
+  --muted: #6B7280;
+  --line: #E2E6EA;
+  --brand: #2F7DC6;
+  --brand-deep: #1F5C97;
+  --brand-soft: #E7F0F9;
+  --brand-bright: #4A9BE0;
+  --radius: 12px;
 }
 
 * { box-sizing: border-box; }
@@ -94,10 +104,12 @@ body {
 
 .tab {
   font: inherit;
-  font-weight: 600;
-  font-size: 15px;
-  padding: 11px 8px;
-  border: 1px solid var(--line);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 12px 8px;
+  border: 1.5px solid var(--line);
   background: var(--cream);
   color: var(--muted);
   border-radius: 10px;
@@ -178,29 +190,35 @@ input:focus, select:focus, textarea:focus {
 .btn {
   width: 100%;
   font: inherit;
-  font-weight: 700;
-  font-size: 17px;
-  padding: 16px;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 17px;
   border: 0;
   border-radius: 10px;
   background: var(--brand);
   color: #fff;
   cursor: pointer;
 }
+.btn:hover { background: var(--brand-deep); }
 .btn:disabled { opacity: 0.55; cursor: default; }
 
 .btn-ghost {
   width: 100%;
   font: inherit;
-  font-weight: 600;
-  font-size: 16px;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   padding: 15px;
-  border: 1px solid var(--line);
+  border: 1.5px solid var(--line);
   background: var(--card);
   color: var(--ink);
   border-radius: 10px;
   cursor: pointer;
 }
+.btn-ghost:hover { border-color: var(--brand); color: var(--brand); }
 
 .btn-add {
   width: 100%;
@@ -246,7 +264,7 @@ input:focus, select:focus, textarea:focus {
 
 .error {
   background: var(--brand-soft);
-  color: #7C2D12;
+  color: #9B2C2C;
   border-radius: 10px;
   padding: 11px 13px;
   font-size: 14px;
@@ -435,7 +453,7 @@ input:focus, select:focus, textarea:focus {
 .rev-name { font-weight: 600; margin-top: 3px; }
 .rev-by { color: var(--muted); font-weight: 400; font-size: 14px; }
 .rev-facts { font-size: 13px; color: var(--muted); margin-top: 3px; }
-.rev-missing { font-size: 13px; color: #7C2D12; margin-top: 4px; font-weight: 600; }
+.rev-missing { font-size: 13px; color: #9B2C2C; margin-top: 4px; font-weight: 600; }
 
 /* ---------- totals ---------- */
 .tiles {
@@ -462,17 +480,31 @@ input:focus, select:focus, textarea:focus {
   gap: 12px;
   margin-bottom: 10px;
 }
-.sec-title { font-weight: 700; font-size: 18px; margin: 0; letter-spacing: -0.01em; }
-.sec-count { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.sec-title {
+  font-weight: 800;
+  font-size: 19px;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.005em;
+  line-height: 1.15;
+}
+.sec-count {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
 .sec-note { font-size: 12.5px; color: var(--muted); margin: -2px 0 12px; line-height: 1.45; }
 
 .sec-kicker {
-  font-size: 11px;
-  letter-spacing: 0.1em;
+  font-size: 11.5px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  font-weight: 700;
-  color: var(--muted);
-  margin-bottom: 10px;
+  font-weight: 800;
+  color: var(--brand);
+  margin-bottom: 12px;
 }
 
 /* ---------- at a glance: the hero ---------- */
@@ -483,70 +515,74 @@ input:focus, select:focus, textarea:focus {
 .hero {
   position: relative;
   overflow: hidden;
-  border-radius: 20px;
-  padding: 20px 20px 18px;
+  border-radius: var(--radius);
+  padding: 22px 20px 20px;
   margin-bottom: 14px;
-  color: #F6EDE6;
-  background:
-    radial-gradient(125% 95% at 88% -10%, rgba(169, 80, 47, 0.60) 0%, rgba(169, 80, 47, 0) 62%),
-    linear-gradient(168deg, #2C1E17 0%, var(--ink-deep) 100%);
+  color: #FFFFFF;
+  background: var(--ink-deep);
 }
 .hero::after {
   content: "";
   position: absolute;
   left: 0; right: 0; top: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--brand) 0%, var(--gold) 55%, rgba(217, 164, 65, 0) 100%);
+  height: 3px;
+  background: var(--brand);
 }
 
-.hero-top { display: flex; align-items: center; gap: 9px; margin-bottom: 22px; }
-.hero-mark { display: flex; color: var(--gold); }
+.hero-top { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+.hero-mark { display: flex; color: var(--brand); }
 .hero-org {
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.13em;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(246, 237, 230, 0.72);
+  color: var(--brand-bright);
 }
 
-.hero-figure { margin-bottom: 20px; }
+.hero-figure { margin-bottom: 22px; }
 .hero-num {
-  font-size: 72px;
-  line-height: 0.88;
+  font-size: 76px;
+  line-height: 0.86;
   font-weight: 800;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.04em;
   color: #FFFFFF;
 }
 .hero-cap {
   font-size: 15px;
-  margin-top: 10px;
-  color: rgba(246, 237, 230, 0.80);
+  margin-top: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.78);
 }
-.hero-cap b { color: #FFFFFF; font-weight: 700; }
+.hero-cap b { color: #FFFFFF; font-weight: 800; }
 
 .hero-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 26px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(246, 237, 230, 0.16);
+  gap: 12px 28px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
 }
-.hero-stat { display: flex; flex-direction: column; gap: 1px; }
-.hero-stat .num { font-size: 21px; font-weight: 700; color: var(--gold); line-height: 1.1; }
+.hero-stat { display: flex; flex-direction: column; gap: 2px; }
+.hero-stat .num { font-size: 22px; font-weight: 800; color: var(--brand-bright); line-height: 1.05; }
 .hero-stat em {
   font-style: normal;
-  font-size: 11.5px;
-  color: rgba(246, 237, 230, 0.66);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .hero-foot {
-  margin: 16px 0 0;
+  margin: 18px 0 0;
   font-size: 11.5px;
-  line-height: 1.5;
-  color: rgba(246, 237, 230, 0.52);
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.5);
 }
 
-.hero-empty .hero-num { color: rgba(255, 255, 255, 0.35); }
+.hero-empty .hero-num { color: rgba(255, 255, 255, 0.3); }
 
 /* ---------- at a glance: provinces ---------- */
 .rows { display: flex; flex-direction: column; gap: 15px; }
@@ -572,7 +608,7 @@ input:focus, select:focus, textarea:focus {
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--brand) 0%, #C4693F 100%);
+  background: var(--brand);
 }
 .prow-sub { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
 
@@ -602,23 +638,31 @@ input:focus, select:focus, textarea:focus {
 /* A solid block of brand colour, because these are the numbers people actually
    repeat to each other, and because it breaks the run of white cards. */
 .fruit {
-  border-radius: 20px;
-  padding: 20px;
+  border-radius: var(--radius);
+  padding: 22px 20px;
   margin-bottom: 14px;
-  background: linear-gradient(150deg, #A9502F 0%, #8E3F23 100%);
-  color: #FDF6F1;
+  background: var(--brand);
+  color: #FFFFFF;
 }
 .fruit-kicker {
-  font-size: 11px;
+  font-size: 11.5px;
   letter-spacing: 0.13em;
   text-transform: uppercase;
-  font-weight: 700;
-  color: rgba(253, 246, 241, 0.72);
-  margin-bottom: 14px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.78);
+  margin-bottom: 16px;
 }
-.fruit-grid { display: grid; gap: 16px; }
-.fruit-num { font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; color: #FFFFFF; }
-.fruit-cap { font-size: 12.5px; margin-top: 5px; color: rgba(253, 246, 241, 0.82); line-height: 1.4; }
+.fruit-grid { display: grid; gap: 18px; }
+.fruit-num { font-size: 36px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; color: #FFFFFF; }
+.fruit-cap {
+  font-size: 11.5px;
+  margin-top: 6px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.45;
+}
 
 .stat { padding: 13px 0; border-bottom: 1px solid var(--line); }
 .stat:last-child { border-bottom: 0; padding-bottom: 0; }

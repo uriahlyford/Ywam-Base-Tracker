@@ -739,7 +739,7 @@
         '<span class="hero-mark" aria-hidden="true">' +
           '<svg viewBox="0 0 40 40" width="30" height="30">' +
             '<rect width="40" height="40" rx="11" fill="currentColor" />' +
-            '<g stroke="#1B1310" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+            '<g stroke="#FFFFFF" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
               '<circle cx="20" cy="15.5" r="4" />' +
               '<path d="M11 30.5c0-5 4-8.5 9-8.5s9 3.5 9 8.5" />' +
             "</g>" +
