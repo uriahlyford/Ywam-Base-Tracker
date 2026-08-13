@@ -7,10 +7,12 @@
   --cream: #FBFAF8;
   --card: #FFFFFF;
   --ink: #241C18;
+  --ink-deep: #17100D;
   --muted: #7A6E67;
   --line: #EAE3DC;
   --brand: #A9502F;
   --brand-soft: #F6EAE3;
+  --gold: #D9A441;
   --radius: 14px;
 }
 
@@ -458,13 +460,123 @@ input:focus, select:focus, textarea:focus {
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+  margin-bottom: 10px;
+}
+.sec-title { font-weight: 700; font-size: 18px; margin: 0; letter-spacing: -0.01em; }
+.sec-count { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.sec-note { font-size: 12.5px; color: var(--muted); margin: -2px 0 12px; line-height: 1.45; }
+
+.sec-kicker {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+/* ---------- at a glance: the hero ---------- */
+/* Dark so the page opens on something with weight, and so the live figures read
+   as a different order of thing from the cards below them. No image behind it —
+   these are phones on Cambodian mobile data, and a hero photo is the one asset
+   that would make this page slow. */
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 20px 20px 18px;
+  margin-bottom: 14px;
+  color: #F6EDE6;
+  background:
+    radial-gradient(125% 95% at 88% -10%, rgba(169, 80, 47, 0.60) 0%, rgba(169, 80, 47, 0) 62%),
+    linear-gradient(168deg, #2C1E17 0%, var(--ink-deep) 100%);
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--brand) 0%, var(--gold) 55%, rgba(217, 164, 65, 0) 100%);
+}
+
+.hero-top { display: flex; align-items: center; gap: 9px; margin-bottom: 22px; }
+.hero-mark { display: flex; color: var(--gold); }
+.hero-org {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: rgba(246, 237, 230, 0.72);
+}
+
+.hero-figure { margin-bottom: 20px; }
+.hero-num {
+  font-size: 72px;
+  line-height: 0.88;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  color: #FFFFFF;
+}
+.hero-cap {
+  font-size: 15px;
+  margin-top: 10px;
+  color: rgba(246, 237, 230, 0.80);
+}
+.hero-cap b { color: #FFFFFF; font-weight: 700; }
+
+.hero-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(246, 237, 230, 0.16);
+}
+.hero-stat { display: flex; flex-direction: column; gap: 1px; }
+.hero-stat .num { font-size: 21px; font-weight: 700; color: var(--gold); line-height: 1.1; }
+.hero-stat em {
+  font-style: normal;
+  font-size: 11.5px;
+  color: rgba(246, 237, 230, 0.66);
+}
+
+.hero-foot {
+  margin: 16px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: rgba(246, 237, 230, 0.52);
+}
+
+.hero-empty .hero-num { color: rgba(255, 255, 255, 0.35); }
+
+/* ---------- at a glance: provinces ---------- */
+.rows { display: flex; flex-direction: column; gap: 15px; }
+
+.prow-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 6px;
 }
-.sec-title { font-weight: 700; font-size: 18px; }
-.sec-count { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.prow-name { font-weight: 600; min-width: 0; }
+.prow-figs { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.prow-figs b { color: var(--ink); font-weight: 700; }
+.prow-sep { opacity: 0.45; }
+.prow-track {
+  height: 7px;
+  background: var(--brand-soft);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.prow-track span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--brand) 0%, #C4693F 100%);
+}
+.prow-sub { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
 
-.rows { display: flex; flex-direction: column; }
-
+/* Kept for the review screen's three little figures. */
 .row {
   display: grid;
   grid-template-columns: 1fr auto auto;
@@ -479,12 +591,34 @@ input:focus, select:focus, textarea:focus {
 .row-num { font-weight: 700; text-align: right; }
 .row-cap { font-size: 12px; color: var(--muted); font-weight: 400; }
 
-.bar-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
-.bar-row:last-child { border-bottom: 0; }
-.bar-head { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; margin-bottom: 6px; }
-.bar-head b { font-weight: 700; }
+.bar-row { padding: 9px 0; border-bottom: 1px solid var(--line); }
+.bar-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.bar-head { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; margin-bottom: 6px; }
+.bar-head b { font-weight: 700; white-space: nowrap; font-size: 12.5px; color: var(--muted); }
 .bar-track { height: 6px; background: var(--brand-soft); border-radius: 999px; overflow: hidden; }
 .bar-track span { display: block; height: 100%; background: var(--brand); border-radius: 999px; }
+
+/* ---------- at a glance: the year's fruit ---------- */
+/* A solid block of brand colour, because these are the numbers people actually
+   repeat to each other, and because it breaks the run of white cards. */
+.fruit {
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 14px;
+  background: linear-gradient(150deg, #A9502F 0%, #8E3F23 100%);
+  color: #FDF6F1;
+}
+.fruit-kicker {
+  font-size: 11px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: rgba(253, 246, 241, 0.72);
+  margin-bottom: 14px;
+}
+.fruit-grid { display: grid; gap: 16px; }
+.fruit-num { font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; color: #FFFFFF; }
+.fruit-cap { font-size: 12.5px; margin-top: 5px; color: rgba(253, 246, 241, 0.82); line-height: 1.4; }
 
 .stat { padding: 13px 0; border-bottom: 1px solid var(--line); }
 .stat:last-child { border-bottom: 0; padding-bottom: 0; }
@@ -492,8 +626,25 @@ input:focus, select:focus, textarea:focus {
 .stat-num { font-size: 24px; font-weight: 700; line-height: 1.15; }
 .stat-cap { font-size: 13px; color: var(--muted); }
 
-.who { font-size: 14px; color: var(--muted); margin: 0; }
-.who b { color: var(--ink); }
+.who-card { padding-bottom: 16px; }
+.who { display: flex; flex-wrap: wrap; gap: 7px; }
+.who-one {
+  font-size: 12.5px;
+  color: var(--muted);
+  background: var(--brand-soft);
+  border-radius: 999px;
+  padding: 5px 11px;
+}
+.who-one b { color: var(--brand); font-weight: 700; }
+
+.glance-actions { display: grid; gap: 8px; margin-top: 18px; }
+
+@media (min-width: 560px) {
+  .hero { padding: 26px 26px 22px; }
+  .hero-num { font-size: 88px; }
+  .fruit-grid { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .glance-actions { grid-template-columns: auto auto auto; justify-content: start; }
+}
 
 /* ---------- footer ---------- */
 .footer {

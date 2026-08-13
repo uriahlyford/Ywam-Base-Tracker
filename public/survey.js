@@ -43,7 +43,9 @@
   // ---------- state ----------
 
   var state = {
-    tab: "form",
+    // The totals are what most people open this for — a leader filling in a
+    // report is the rarer visit, and they arrive knowing they came to do it.
+    tab: "results",
     step: "you", // you | ministries | review | done
     report: blankReport(),
     openMinistry: null,
@@ -578,11 +580,26 @@
 
     if (!t.ministries) {
       return (
-        '<div class="card empty">' +
-          "<h2>Nothing reported yet</h2>" +
-          "<p>The totals fill in as leaders send their reports.</p>" +
-        "</div>" +
-        '<button class="btn" data-action="to-ministries">Start my report</button>'
+        '<section class="hero hero-empty">' +
+          '<div class="hero-top">' +
+            '<span class="hero-mark" aria-hidden="true">' +
+              '<svg viewBox="0 0 40 40" width="30" height="30">' +
+                '<rect width="40" height="40" rx="11" fill="currentColor" />' +
+                '<g stroke="#1B1310" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<circle cx="20" cy="15.5" r="4" />' +
+                  '<path d="M11 30.5c0-5 4-8.5 9-8.5s9 3.5 9 8.5" />' +
+                "</g>" +
+              "</svg>" +
+            "</span>" +
+            '<span class="hero-org">YWAM Cambodia</span>' +
+          "</div>" +
+          '<div class="hero-figure"><div class="hero-num num">—</div>' +
+            '<div class="hero-cap">no reports in yet</div></div>' +
+          '<p class="hero-foot">This page fills in as leaders send theirs. Yours can be the first.</p>' +
+        "</section>" +
+        '<div class="glance-actions">' +
+          '<button class="btn" data-action="to-ministries">Start my report</button>' +
+        "</div>"
       );
     }
 
@@ -609,77 +626,146 @@
       );
     }).join("");
 
-    var provinceRows = Object.keys(t.byProvince)
-      .sort(function (a, b) { return provinceOrder[a] - provinceOrder[b]; })
-      .map(function (pid) {
-        var row = t.byProvince[pid];
-        return (
-          '<div class="row">' +
-            '<div class="row-name">' + esc(provinceName(pid)) +
-              '<div class="row-by">' + row.ministries + " " + plural(row.ministries, "ministry", "ministries") + "</div>" +
-            "</div>" +
-            '<div class="row-num num">' + fmt(row.staff) + '<div class="row-cap">staff</div></div>' +
-            '<div class="row-num num">' + fmt(row.weekly) + '<div class="row-cap">a week</div></div>' +
-          "</div>"
-        );
-      }).join("");
+    // Biggest first — at a glance, where the weight sits matters more than
+    // where a province falls in the gazetteer order.
+    var provinceIds = Object.keys(t.byProvince).sort(function (a, b) {
+      return t.byProvince[b].staff - t.byProvince[a].staff || provinceOrder[a] - provinceOrder[b];
+    });
+    var biggest = provinceIds.reduce(function (max, pid) {
+      return Math.max(max, t.byProvince[pid].staff);
+    }, 0) || 1;
+
+    var provinceRows = provinceIds.map(function (pid) {
+      var row = t.byProvince[pid];
+      return (
+        '<div class="prow">' +
+          '<div class="prow-head">' +
+            '<span class="prow-name">' + esc(provinceName(pid)) + "</span>" +
+            '<span class="prow-figs"><b class="num">' + fmt(row.staff) + "</b> staff" +
+              (row.weekly ? ' <span class="prow-sep">·</span> <b class="num">' + fmt(row.weekly) + "</b> a week" : "") +
+            "</span>" +
+          "</div>" +
+          '<div class="prow-track"><span style="width:' +
+            Math.max(3, Math.round((row.staff / biggest) * 100)) + '%"></span></div>' +
+          '<div class="prow-sub">' + row.ministries + " " + plural(row.ministries, "ministry", "ministries") + "</div>" +
+        "</div>"
+      );
+    }).join("");
 
     var who = reports.map(function (r) {
       var count = (r.ministries || []).length;
-      return "<b>" + esc(r.leaderName || "Unnamed") + "</b> — " + count + " " + plural(count, "ministry", "ministries");
-    }).join("<br />");
+      return '<span class="who-one"><b>' + esc(r.leaderName || "Unnamed") + "</b> " +
+        count + " " + plural(count, "ministry", "ministries") + "</span>";
+    }).join("");
 
     return (
-      '<div class="step-head">' +
-        '<h1 class="step-title">YWAM Cambodia today</h1>' +
-        '<p class="step-sub">Built from ' + t.reports + " " + plural(t.reports, "report", "reports") +
-          ". Staff, ministries and the people we reach are as they stand today; school students and fruit are for " + YEAR + ".</p>" +
-      "</div>" +
+      hero(t) +
 
-      '<div class="tiles">' +
-        tile(t.provinces, "provinces we are in") +
-        tile(t.ministries, "ministries") +
-        tile(t.staffTotal, "staff") +
-        tile(t.peopleWeekly, "people reached in a normal week") +
-        tile(t.schoolGraduates, "YWAM training school graduates in " + YEAR) +
-        tile(t.churchesServed + t.churchesLed, "local churches served or led") +
-      "</div>" +
+      section("Where we are", t.provinces + " of " + PROVINCES.length + " provinces",
+        '<div class="rows">' + provinceRows + "</div>") +
 
-      '<div class="card">' +
-        '<div class="sec-head"><div class="sec-title">By province</div>' +
-          '<div class="sec-count">' + t.provinces + " of " + PROVINCES.length + "</div></div>" +
-        '<div class="rows">' + provinceRows + "</div>" +
-      "</div>" +
+      section("How we reach them", t.ministries + " " + plural(t.ministries, "ministry", "ministries"),
+        '<p class="sec-note">A ministry can be more than one kind, so these overlap ' +
+          "and add up to more than " + t.ministries + ".</p>" + typeRows) +
 
-      '<div class="card">' +
-        '<div class="sec-head"><div class="sec-title">How we reach them</div>' +
-          '<div class="sec-count">' + t.ministries + " ministries</div></div>" +
-        '<p class="field-note">A ministry can be more than one kind, so these rows overlap and add up to more than ' + t.ministries + ".</p>" +
-        typeRows +
-      "</div>" +
+      fruitBand(t) +
 
-      statCard("Right now", [
+      statCard("Also right now", [
         [t.staffCambodian, "Cambodian staff"],
         [t.villagesReached, "villages and communities we go into"],
         [t.churchesLed, "local churches led by our staff"],
         [t.churchesServed, "local churches we serve"],
       ]) +
 
-      statCard(String(YEAR), [
-        [t.schoolGraduates, "students graduated from our YWAM training schools"],
-        [t.newBelievers, "new believers"],
-        [t.baptisms, "baptisms"],
-      ]) +
-
-      '<div class="card">' +
-        '<div class="sec-title" style="margin-bottom:10px">Who has reported</div>' +
-        '<p class="who">' + who + "</p>" +
+      '<div class="card who-card">' +
+        '<div class="sec-kicker">Who has reported</div>' +
+        '<div class="who">' + who + "</div>" +
       "</div>" +
 
-      '<div class="btn-row">' +
+      '<div class="glance-actions">' +
+        '<button class="btn" data-action="to-ministries">Add my report</button>' +
         '<button class="btn-ghost" data-action="download-csv">Download as a spreadsheet</button>' +
         '<button class="btn-ghost" data-action="load-results">Refresh</button>' +
       "</div>"
+    );
+  }
+
+  // The dark panel at the top. One figure carries the page — the staff count,
+  // because it is the only number every ministry is required to give, so it is
+  // the one that is never quietly built out of half the reports.
+  function hero(t) {
+    var side = [
+      [t.ministries, plural(t.ministries, "ministry", "ministries")],
+      [t.peopleWeekly, "reached a week"],
+      [t.schoolGraduates, "graduates in " + YEAR],
+    ].filter(function (s) { return s[0] > 0; });
+
+    return (
+      '<section class="hero">' +
+        '<div class="hero-top">' +
+          '<span class="hero-mark" aria-hidden="true">' +
+            '<svg viewBox="0 0 40 40" width="30" height="30">' +
+              '<rect width="40" height="40" rx="11" fill="currentColor" />' +
+              '<g stroke="#1B1310" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+                '<circle cx="20" cy="15.5" r="4" />' +
+                '<path d="M11 30.5c0-5 4-8.5 9-8.5s9 3.5 9 8.5" />' +
+              "</g>" +
+            "</svg>" +
+          "</span>" +
+          '<span class="hero-org">YWAM Cambodia</span>' +
+        "</div>" +
+
+        '<div class="hero-figure">' +
+          '<div class="hero-num num">' + fmt(t.staffTotal) + "</div>" +
+          '<div class="hero-cap">staff serving in <b>' + t.provinces + "</b> " +
+            plural(t.provinces, "province", "provinces") + "</div>" +
+        "</div>" +
+
+        (side.length
+          ? '<div class="hero-strip">' + side.map(function (s) {
+              return '<div class="hero-stat"><span class="num">' + fmt(s[0]) + "</span>" +
+                "<em>" + esc(s[1]) + "</em></div>";
+            }).join("") + "</div>"
+          : "") +
+
+        '<p class="hero-foot">Built from ' + t.reports + " " + plural(t.reports, "report", "reports") +
+          ". Staff, ministries and reach are as they stand today; graduates and fruit are for " + YEAR + ".</p>" +
+      "</section>"
+    );
+  }
+
+  function section(title, count, body) {
+    return (
+      '<section class="card">' +
+        '<div class="sec-head">' +
+          '<h2 class="sec-title">' + esc(title) + "</h2>" +
+          (count ? '<div class="sec-count">' + esc(count) + "</div>" : "") +
+        "</div>" +
+        body +
+      "</section>"
+    );
+  }
+
+  // The year's fruit, given its own band so it reads as a different kind of
+  // number from the live ones above it — these are a closed year, not today.
+  function fruitBand(t) {
+    var lines = [
+      [t.schoolGraduates, "graduated from our YWAM training schools"],
+      [t.newBelievers, "new believers"],
+      [t.baptisms, "baptisms"],
+    ].filter(function (l) { return l[0] > 0; });
+    if (!lines.length) return "";
+
+    return (
+      '<section class="fruit">' +
+        '<div class="fruit-kicker">In ' + YEAR + "</div>" +
+        '<div class="fruit-grid">' +
+          lines.map(function (l) {
+            return '<div class="fruit-one"><div class="fruit-num num">' + fmt(l[0]) + "</div>" +
+              '<div class="fruit-cap">' + esc(l[1]) + "</div></div>";
+          }).join("") +
+        "</div>" +
+      "</section>"
     );
   }
 
@@ -691,15 +777,16 @@
     if (!shown.length) return "";
     var quiet = lines.length - shown.length;
     return (
-      '<div class="card">' +
-        '<div class="sec-head"><div class="sec-title">' + esc(title) + "</div>" +
+      '<section class="card">' +
+        '<div class="sec-head">' +
+          '<h2 class="sec-title">' + esc(title) + "</h2>" +
           (quiet ? '<div class="sec-count">' + quiet + " not yet reported</div>" : "") +
         "</div>" +
         shown.map(function (l) {
           return '<div class="stat"><div class="stat-num num">' + fmt(l[0]) +
             '</div><div class="stat-cap">' + esc(l[1]) + "</div></div>";
         }).join("") +
-      "</div>"
+      "</section>"
     );
   }
 
@@ -1013,4 +1100,7 @@
   loadDraft();
   if (state.report.ministries.length || state.report.provinceIds.length) state.step = "ministries";
   render();
+  // The landing screen is the totals, so they have to be on their way before
+  // anyone taps anything.
+  loadResults();
 })();
