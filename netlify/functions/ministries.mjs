@@ -18,13 +18,6 @@ const PROVINCE_IDS = new Set([
   "siem-reap", "stung-treng", "svay-rieng", "takeo", "tboung-khmum",
 ]);
 
-const MINISTRY_TYPE_IDS = new Set([
-  "sports", "english", "education", "children", "youth", "training",
-  "church-planting", "village-outreach", "media-arts", "music", "health",
-  "vocational", "business", "agriculture", "community", "justice", "mercy",
-  "prayer", "other",
-]);
-
 // Counts collected as of today, whatever the reporting year.
 const CURRENT_COUNTS = [
   "staffTotal", "staffCambodian", "peopleWeekly", "villagesReached",
@@ -36,7 +29,7 @@ const YEAR_COUNTS = [
   "schoolGraduates", "newBelievers", "baptisms",
 ];
 
-const SHORT_TEXTS = ["name", "leaderName", "typeOther"];
+const SHORT_TEXTS = ["name", "leaderName"];
 const LONG_TEXTS = ["biggestNeed"];
 
 function store() {
@@ -68,9 +61,6 @@ function cleanMinistry(raw) {
     provinceId,
     name,
     leaderName,
-    types: Array.isArray(raw.types)
-      ? [...new Set(raw.types.filter((t) => MINISTRY_TYPE_IDS.has(t)))]
-      : [],
   };
 
   for (const key of SHORT_TEXTS) {

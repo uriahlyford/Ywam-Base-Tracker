@@ -28,7 +28,6 @@
   var YEAR = window.REPORT_YEAR;
 
   var PROVINCES = window.PROVINCES || [];
-  var MINISTRY_TYPES = window.MINISTRY_TYPES || [];
 
   var provinceById = {};
   var provinceOrder = {};
@@ -36,9 +35,6 @@
     provinceById[p.id] = p;
     provinceOrder[p.id] = i;
   });
-
-  var typeById = {};
-  MINISTRY_TYPES.forEach(function (t) { typeById[t.id] = t; });
 
   // ---------- state ----------
 
@@ -73,8 +69,6 @@
       provinceId: provinceId,
       name: "",
       leaderName: "",
-      types: [],
-      typeOther: "",
       // as of today
       staffTotal: "",
       staffCambodian: "",
@@ -199,12 +193,6 @@
     return null;
   }
 
-  function typeLabels(m) {
-    return (m.types || []).map(function (t) {
-      return t === "other" && m.typeOther ? m.typeOther : (typeById[t] ? typeById[t].label : t);
-    });
-  }
-
   function ministryLabel(m) {
     return m.name ? esc(m.name) : '<span class="unnamed">Untitled ministry</span>';
   }
@@ -212,10 +200,7 @@
   function ministrySub(m) {
     var bits = [];
     if (m.leaderName) bits.push("Led by " + m.leaderName);
-    var labels = typeLabels(m);
-    if (labels.length) {
-      bits.push(labels.slice(0, 2).join(", ") + (labels.length > 2 ? " +" + (labels.length - 2) : ""));
-    }
+    if (m.provinceId) bits.push(provinceName(m.provinceId));
     if (m.staffTotal !== "") bits.push(n(m.staffTotal) + " staff");
     return bits.length ? esc(bits.join(" · ")) : "Tap to fill in";
   }
@@ -379,11 +364,6 @@
   }
 
   function renderMinistryBody(m) {
-    var chips = MINISTRY_TYPES.map(function (t) {
-      var on = m.types.indexOf(t.id) !== -1;
-      return '<button type="button" class="chip' + (on ? " on" : "") + '" data-min="' + m.id + '" data-type="' + t.id + '">' + esc(t.label) + "</button>";
-    }).join("");
-
     var provinceOptions = state.report.provinceIds.map(function (pid) {
       return '<option value="' + pid + '"' + (pid === m.provinceId ? " selected" : "") + ">" + esc(provinceName(pid)) + "</option>";
     }).join("");
@@ -397,19 +377,10 @@
       "</div>" +
 
       '<div class="sect">' +
-        '<div class="sect-title">What kind of ministry</div>' +
-        '<p class="field-note">Tick everything that applies.</p>' +
-        '<div class="chips">' + chips + "</div>" +
-        (m.types.indexOf("other") !== -1
-          ? '<div style="margin-top:14px">' + textField(m, "typeOther", "Describe the other ministry") + "</div>"
-          : "") +
-      "</div>" +
-
-      '<div class="sect">' +
         '<div class="sect-title">Staff — right now</div>' +
         numField(m, "staffTotal", "Total staff in this ministry") +
         '<div style="margin-top:14px">' +
-          numField(m, "staffCambodian", "Of those, how many are Cambodian", "optional") +
+          numField(m, "staffCambodian", "Of those, how many are Khmer", "optional") +
         "</div>" +
       "</div>" +
 
@@ -532,8 +503,16 @@
   var YEAR_SUMS = ["schoolGraduates", "newBelievers", "baptisms"];
 
   function totalsFor(reports) {
-    var t = { reports: reports.length, ministries: 0, provinces: 0, byType: {}, byProvince: {} };
+    var t = { reports: reports.length, ministries: 0, provinces: 0, byProvince: {} };
     CURRENT_SUMS.concat(YEAR_SUMS).forEach(function (k) { t[k] = 0; });
+
+    // International staff is not a question — it is whatever is left of a
+    // ministry's total once its Cambodian staff are counted. Only ministries
+    // that gave the split can be subtracted, so their totals are tracked
+    // separately; using the national total would count every ministry that
+    // skipped the question as fully international.
+    t.staffSplitKnown = 0;
+    t.ministriesWithSplit = 0;
 
     var provinceSeen = {};
 
@@ -543,12 +522,10 @@
         CURRENT_SUMS.forEach(function (k) { t[k] += n(m[k]); });
         YEAR_SUMS.forEach(function (k) { t[k] += n(m[k]); });
 
-        (m.types || []).forEach(function (id) {
-          if (!t.byType[id]) t.byType[id] = { ministries: 0, staff: 0, weekly: 0 };
-          t.byType[id].ministries += 1;
-          t.byType[id].staff += n(m.staffTotal);
-          t.byType[id].weekly += n(m.peopleWeekly);
-        });
+        if (m.staffCambodian !== "" && m.staffCambodian !== undefined && m.staffCambodian !== null) {
+          t.staffSplitKnown += n(m.staffTotal);
+          t.ministriesWithSplit += 1;
+        }
 
         var pid = m.provinceId;
         if (!pid) return;
@@ -562,6 +539,9 @@
 
     t.provinces = Object.keys(provinceSeen).length;
     t.staff = t.staffTotal;
+    // A leader who put more Cambodian staff than total staff would otherwise
+    // drive this negative, so it floors at zero.
+    t.staffInternational = Math.max(0, t.staffSplitKnown - t.staffCambodian);
     return t;
   }
 
@@ -607,26 +587,6 @@
     // A ministry can be several kinds at once — a sports programme that is also
     // youth ministry is tagged both — so these rows overlap and must not be read
     // as a breakdown that sums to the total. The bars are scaled against the
-    // largest row, not against the total, so nothing implies a share of a whole.
-    var typeIds = Object.keys(t.byType).sort(function (a, b) {
-      return t.byType[b].ministries - t.byType[a].ministries;
-    });
-    var widest = typeIds.length ? t.byType[typeIds[0]].ministries : 1;
-
-    var typeRows = typeIds.map(function (id) {
-      var row = t.byType[id];
-      var pct = Math.round((row.ministries / widest) * 100);
-      var detail = [row.ministries + " " + plural(row.ministries, "ministry", "ministries")];
-      if (row.staff) detail.push(fmt(row.staff) + " staff");
-      return (
-        '<div class="bar-row">' +
-          '<div class="bar-head"><span>' + esc(typeById[id] ? typeById[id].label : id) + "</span>" +
-            "<b>" + esc(detail.join(" · ")) + "</b></div>" +
-          '<div class="bar-track"><span style="width:' + pct + '%"></span></div>' +
-        "</div>"
-      );
-    }).join("");
-
     // Biggest first — at a glance, where the weight sits matters more than
     // where a province falls in the gazetteer order.
     var provinceIds = Object.keys(t.byProvince).sort(function (a, b) {
@@ -665,14 +625,9 @@
       section("Where we are", t.provinces + " of " + PROVINCES.length + " provinces",
         '<div class="rows">' + provinceRows + "</div>") +
 
-      section("How we reach them", t.ministries + " " + plural(t.ministries, "ministry", "ministries"),
-        '<p class="sec-note">A ministry can be more than one kind, so these overlap ' +
-          "and add up to more than " + t.ministries + ".</p>" + typeRows) +
-
       fruitBand(t) +
 
       statCard("Also right now", [
-        [t.staffCambodian, "Cambodian staff"],
         [t.villagesReached, "villages and communities we go into"],
         [t.churchesLed, "local churches led by our staff"],
         [t.churchesServed, "local churches we serve"],
@@ -718,6 +673,8 @@
             plural(t.provinces, "province", "provinces") + "</div>" +
         "</div>" +
 
+        staffSplit(t) +
+
         (side.length
           ? '<div class="hero-strip">' + side.map(function (s) {
               return '<div class="hero-stat"><span class="num">' + fmt(s[0]) + "</span>" +
@@ -728,6 +685,38 @@
         '<p class="hero-foot">Built from ' + t.reports + " " + plural(t.reports, "report", "reports") +
           ". Staff, ministries and reach are as they stand today; graduates and fruit are for " + YEAR + ".</p>" +
       "</section>"
+    );
+  }
+
+  // Khmer and international staff, as one bar rather than two figures, because
+  // the point of the breakdown is the proportion. Only the ministries that gave
+  // the split are in it — the caption says so when some didn't, otherwise the
+  // bar would quietly read as the whole organisation.
+  function staffSplit(t) {
+    var known = t.staffSplitKnown;
+    if (!known) return "";
+
+    var khmer = Math.min(t.staffCambodian, known);
+    var pct = Math.round((khmer / known) * 100);
+    var missing = t.ministries - t.ministriesWithSplit;
+
+    return (
+      '<div class="hero-split">' +
+        '<div class="split-track">' +
+          '<span class="split-khmer" style="width:' + pct + '%"></span>' +
+        "</div>" +
+        '<div class="split-keys">' +
+          '<div class="split-key"><i class="dot dot-khmer"></i>' +
+            '<span class="num">' + fmt(khmer) + "</span> Khmer</div>" +
+          '<div class="split-key"><i class="dot dot-intl"></i>' +
+            '<span class="num">' + fmt(t.staffInternational) + "</span> international</div>" +
+        "</div>" +
+        (missing > 0
+          ? '<div class="split-note">' + missing + " " + plural(missing, "ministry", "ministries") +
+            " didn't give the split, so " + fmt(known) + " of " + fmt(t.staffTotal) +
+            " staff are counted here.</div>"
+          : "") +
+      "</div>"
     );
   }
 
@@ -794,10 +783,10 @@
   function goalList() {
     var goals = [
       "How many provinces we are in",
-      "How many staff we are, and how many of us are Cambodian",
+      "How many staff we are, and how many of us are Khmer",
       "How many people we reach in a normal week",
+      "How many villages and communities we go into",
       "How many students graduated from our YWAM training schools in " + YEAR,
-      "What kinds of ministry we reach them through — sports, English, kids clubs, and the rest",
       "How many local churches we serve, and how many we lead",
     ];
     return '<ul class="goals">' +
@@ -841,9 +830,8 @@
     ["Province", function (r, m) { return provinceName(m.provinceId); }],
     ["Ministry", function (r, m) { return m.name; }],
     ["Ministry leader", function (r, m) { return m.leaderName; }],
-    ["Ministry types", function (r, m) { return typeLabels(m).join("; "); }],
     ["Staff total", function (r, m) { return m.staffTotal; }],
-    ["Staff Cambodian", function (r, m) { return m.staffCambodian; }],
+    ["Staff Khmer", function (r, m) { return m.staffCambodian; }],
     ["People reached weekly", function (r, m) { return m.peopleWeekly; }],
     ["Villages reached", function (r, m) { return m.villagesReached; }],
     ["Churches served", function (r, m) { return m.churchesServed; }],
@@ -1021,7 +1009,7 @@
 
   document.addEventListener("click", function (e) {
     var el = e.target.closest(
-      "[data-goto],[data-action],[data-province],[data-add-ministry],[data-toggle-ministry],[data-remove-ministry],[data-type]"
+      "[data-goto],[data-action],[data-province],[data-add-ministry],[data-toggle-ministry],[data-remove-ministry]"
     );
     if (!el) return;
     var d = el.dataset;
@@ -1059,19 +1047,6 @@
       if (state.openMinistry === d.removeMinistry) state.openMinistry = null;
       saveDraft();
       render();
-      return;
-    }
-
-    if (d.type && d.min) {
-      var mt = findMinistry(d.min);
-      if (!mt) return;
-      var i = mt.types.indexOf(d.type);
-      if (i === -1) mt.types.push(d.type); else mt.types.splice(i, 1);
-      saveDraft();
-      // "Other" opens a text box below, so that one needs a real re-render.
-      if (d.type === "other") { render(); return; }
-      el.classList.toggle("on");
-      refreshSummary(mt);
       return;
     }
 

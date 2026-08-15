@@ -22,25 +22,23 @@ The totals screen labels these separately and never blends them.
 - **Training school graduates and fruit — calendar year 2025.** "How many
   students graduated from our schools in a year" only has a clean answer once the
   year is closed.
-- **Everything else — as it stands today.** Staff, sports, English classes,
-  villages, churches served and led. These are numbers a leader can give from
-  memory without going back through records, and a stale figure helps nobody.
+- **Everything else — as it stands today.** Staff, weekly reach, villages,
+  churches served and led. These are numbers a leader can give from memory
+  without going back through records, and a stale figure helps nobody.
 
 Change the year in one place, `public/options.js`, and every label follows.
 
 ## What it asks
 
-Fourteen questions per ministry, and a leader with four ministries answers them
+Thirteen questions per ministry, and a leader with four ministries answers them
 four times — so every one of them has to earn its place.
 
-Per ministry: name, its leader, province, and what kind of ministry it is
-(sports, English, kids clubs, church planting, media, health, vocational,
-justice, and a dozen more — tick as many as apply).
+Per ministry: name, its leader, and province.
 
-Then **right now**: total staff and how many of them are Cambodian; people
-reached in a normal week; villages gone into; churches served and churches led,
-kept as separate questions because supporting a church and pastoring one are
-different things.
+Then **right now**: total staff and how many of them are Khmer; people reached in
+a normal week; villages gone into; churches served and churches led, kept as
+separate questions because supporting a church and pastoring one are different
+things.
 
 Then **2025**: students graduated from our YWAM training schools, new believers,
 baptisms.
@@ -50,6 +48,12 @@ how many started is a number they'd have to go and look up, and it counts people
 who dropped out as reach they didn't have.
 
 Then in their own words: the biggest need right now.
+
+**International staff is not a question.** It is whatever is left of a ministry's
+total once its Khmer staff are counted, so the dashboard derives it rather than
+asking for it twice. Only ministries that gave the split are in that bar, and the
+caption says so when some didn't — otherwise a ministry that skipped the question
+would be counted as entirely international.
 
 Only three fields are required — the ministry's name, who leads it, and the
 staff count. Everything else can be left blank, because a report that gets
@@ -63,6 +67,11 @@ asked three times over (daily youth, enrolled students, weekly people), and each
 training school got its own five-field row. It also asked for the town, the year
 the ministry started, whether it sat on the base, the names of every village, and
 a prayer request.
+
+It also asked every leader to tick what kind of ministry each one was, from a
+list of nineteen — sports, English, kids clubs, church planting and the rest.
+That was the longest single control on the card, and it existed to feed one
+chart on the dashboard. Both are gone.
 
 All of that is gone. The rule applied: a question stays only if a leader can
 answer it from memory and the answer changes what the totals say. A breakdown
@@ -91,8 +100,8 @@ than solved:
   already in the store **replaces** what is there. Someone typing a name that
   already exists overwrites that leader's report.
 - Nothing stops junk being added. The function still caps counts, drops unknown
-  province and ministry-type ids and length-limits text, so a bad report is
-  bounded — but it is stored.
+  province ids and length-limits text, so a bad report is bounded — but it is
+  stored.
 
 The mitigation is that reports are few, named, and read by people who know who
 should be in the list. A total that looks wrong is traceable to the name on it,
@@ -117,13 +126,12 @@ report survives a closed tab, a dead battery, and a failed submit.
 - One Netlify Function backed by [Netlify Blobs](https://docs.netlify.com/blobs/overview/):
   `ministries.mjs` at `/api/ministries` — `GET` returns every report, `POST`
   files one
-- The function re-validates everything the browser sends: unknown province and
-  ministry-type ids are dropped, counts are clamped, text is length-capped, and
-  a ministry without a name, leader and province is not stored at all
+- The function re-validates everything the browser sends: unknown province ids
+  are dropped, counts are clamped, text is length-capped, and a ministry without
+  a name, leader and province is not stored at all
 - `public/provinces.js` — the 25 provinces, NCDD gazetteer spellings
-- `public/options.js` — the ministry-type vocabulary and the reporting year.
-  Adding an id here means adding it to `MINISTRY_TYPE_IDS` in
-  `netlify/functions/ministries.mjs`, which drops ids it doesn't recognise.
+- `public/options.js` — the reporting year, in one place. Change it there and
+  every label that names a year follows.
 
 The **Download as a spreadsheet** button on the totals screen writes one row per
 ministry, with a UTF-8 BOM so Excel opens Khmer and accented names correctly, and
