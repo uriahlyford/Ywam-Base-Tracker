@@ -69,6 +69,12 @@
       provinceId: provinceId,
       name: "",
       leaderName: "",
+      // A campus is a location that currently runs a DTS; everything else is a
+      // ministry. Only the campuses are asked about school graduates, because
+      // asking a library or a dorm how many students it graduated is noise.
+      // Older drafts and older stored reports have no such field and read as
+      // false, which is right — they were written when every card was the same.
+      runsDts: false,
       // as of today
       staffTotal: "",
       staffCambodian: "",
@@ -199,6 +205,7 @@
 
   function ministrySub(m) {
     var bits = [];
+    if (m.runsDts) bits.push("DTS campus");
     if (m.leaderName) bits.push("Led by " + m.leaderName);
     if (m.provinceId) bits.push(provinceName(m.provinceId));
     if (m.staffTotal !== "") bits.push(n(m.staffTotal) + " staff");
@@ -407,6 +414,12 @@
         textField(m, "name", "Ministry name", "what you call it") +
         textField(m, "leaderName", "Who leads it", "the person responsible on the ground") +
         fieldWrap("Province", "", '<select data-min="' + m.id + '" data-key="provinceId">' + provinceOptions + "</select>") +
+        '<button type="button" class="pick pick-wide' + (m.runsDts ? " on" : "") + '" data-toggle-dts="' + m.id + '" aria-pressed="' + (m.runsDts ? "true" : "false") + '">' +
+          '<span class="pick-box" aria-hidden="true">✓</span>' +
+          '<span class="pick-name">This location currently runs a DTS' +
+            '<span class="pick-count"> — that makes it a campus</span>' +
+          "</span>" +
+        "</button>" +
       "</div>" +
 
       '<div class="sect">' +
@@ -432,8 +445,16 @@
       '<div class="sect">' +
         '<div class="sect-title">' + YEAR + "</div>" +
         '<p class="field-note">Skip anything that didn\'t happen.</p>' +
-        numField(m, "schoolGraduates", "Students graduated from our YWAM training schools", "optional") +
-        '<div class="pair" style="margin-top:14px">' +
+        // Only campuses are asked about graduates. The `!== ""` keeps the field
+        // on screen for a card that already carries a figure — a location that
+        // ran a DTS in the reporting year and has since stopped would otherwise
+        // have its number hidden while it still counted towards the national
+        // total, which is the one thing worse than asking a needless question.
+        (m.runsDts || m.schoolGraduates !== ""
+          ? numField(m, "schoolGraduates", "Students graduated from our YWAM training schools", "optional") +
+            '<div style="height:14px"></div>'
+          : "") +
+        '<div class="pair">' +
           numField(m, "newBelievers", "New believers", "optional") +
           numField(m, "baptisms", "Baptisms", "optional") +
         "</div>" +
@@ -460,6 +481,7 @@
       return ministriesIn(pid).map(function (m) {
         var missing = missingFrom(m);
         var facts = [];
+        if (m.runsDts) facts.push("DTS campus");
         if (m.staffTotal !== "") facts.push(n(m.staffTotal) + " staff");
         if (m.peopleWeekly !== "") facts.push(fmt(n(m.peopleWeekly)) + " people a week");
         if (m.schoolGraduates !== "") facts.push(fmt(n(m.schoolGraduates)) + " school graduates in " + YEAR);
@@ -547,11 +569,16 @@
     t.staffSplitKnown = 0;
     t.ministriesWithSplit = 0;
 
+    // Campuses are a subset of the ministries, never a separate population —
+    // a campus is one of the 24 expressions, not a 25th thing alongside them.
+    t.campuses = 0;
+
     var provinceSeen = {};
 
     reports.forEach(function (r) {
       (r.ministries || []).forEach(function (m) {
         t.ministries += 1;
+        if (m.runsDts) t.campuses += 1;
         CURRENT_SUMS.forEach(function (k) { t[k] += n(m[k]); });
         YEAR_SUMS.forEach(function (k) { t[k] += n(m[k]); });
 
@@ -563,8 +590,9 @@
         var pid = m.provinceId;
         if (!pid) return;
         provinceSeen[pid] = true;
-        if (!t.byProvince[pid]) t.byProvince[pid] = { ministries: 0, staff: 0, weekly: 0 };
+        if (!t.byProvince[pid]) t.byProvince[pid] = { ministries: 0, campuses: 0, staff: 0, weekly: 0 };
         t.byProvince[pid].ministries += 1;
+        if (m.runsDts) t.byProvince[pid].campuses += 1;
         t.byProvince[pid].staff += n(m.staffTotal);
         t.byProvince[pid].weekly += n(m.peopleWeekly);
       });
@@ -641,7 +669,9 @@
           "</div>" +
           '<div class="prow-track"><span style="width:' +
             Math.max(3, Math.round((row.staff / biggest) * 100)) + '%"></span></div>' +
-          '<div class="prow-sub">' + row.ministries + " " + plural(row.ministries, "ministry", "ministries") + "</div>" +
+          '<div class="prow-sub">' + row.ministries + " " + plural(row.ministries, "ministry", "ministries") +
+            (row.campuses ? " · " + row.campuses + " " + plural(row.campuses, "DTS campus", "DTS campuses") : "") +
+          "</div>" +
         "</div>"
       );
     }).join("");
@@ -692,6 +722,9 @@
   function hero(t) {
     var side = [
       [t.ministries, plural(t.ministries, "ministry", "ministries")],
+      // Next to the ministry count on purpose: the two together are the shape
+      // of the network — this many expressions, of which this many train.
+      [t.campuses, plural(t.campuses, "DTS campus", "DTS campuses")],
       [t.peopleWeekly, "reached a week"],
       [t.schoolGraduates, "graduates in " + YEAR],
     ].filter(function (s) { return s[0] > 0; });
@@ -857,6 +890,7 @@
     ["Province", function (r, m) { return provinceName(m.provinceId); }],
     ["Ministry", function (r, m) { return m.name; }],
     ["Ministry leader", function (r, m) { return m.leaderName; }],
+    ["Runs a DTS", function (r, m) { return m.runsDts ? "Yes" : "No"; }],
     ["Staff total", function (r, m) { return m.staffTotal; }],
     ["Staff Khmer", function (r, m) { return m.staffCambodian; }],
     ["People reached weekly", function (r, m) { return m.peopleWeekly; }],
@@ -1036,7 +1070,7 @@
 
   document.addEventListener("click", function (e) {
     var el = e.target.closest(
-      "[data-goto],[data-action],[data-province],[data-add-ministry],[data-toggle-ministry],[data-remove-ministry]"
+      "[data-goto],[data-action],[data-province],[data-add-ministry],[data-toggle-ministry],[data-toggle-dts],[data-remove-ministry]"
     );
     if (!el) return;
     var d = el.dataset;
@@ -1062,6 +1096,17 @@
 
     if (d.toggleMinistry) {
       state.openMinistry = state.openMinistry === d.toggleMinistry ? null : d.toggleMinistry;
+      render();
+      return;
+    }
+
+    if (d.toggleDts) {
+      var dtsTarget = findMinistry(d.toggleDts);
+      if (!dtsTarget) return;
+      dtsTarget.runsDts = !dtsTarget.runsDts;
+      saveDraft();
+      // A full render, not just the button: this decides whether the graduates
+      // question is on screen at all.
       render();
       return;
     }

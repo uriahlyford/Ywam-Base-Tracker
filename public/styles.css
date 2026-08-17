@@ -325,6 +325,11 @@ input:focus, select:focus, textarea:focus {
 .pick-name { min-width: 0; }
 .pick-count { color: var(--muted); font-size: 12px; }
 
+/* The same control on its own inside a ministry card, rather than in the
+   province grid — full width, and it needs the top margin the grid's gap gives
+   the others. */
+.pick-wide { width: 100%; margin-top: 4px; }
+
 /* ---------- a province and the ministries inside it ---------- */
 .prov-block { margin-bottom: 20px; }
 

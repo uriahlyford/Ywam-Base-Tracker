@@ -61,6 +61,11 @@ function cleanMinistry(raw) {
     provinceId,
     name,
     leaderName,
+    // A campus is a location that currently runs a DTS. Strictly `=== true`, so
+    // a missing field on an older report, and any truthy string a crafted
+    // request might send, both land on false rather than inflating the campus
+    // count — the figure only moves when a leader actually ticked the box.
+    runsDts: raw.runsDts === true,
   };
 
   for (const key of SHORT_TEXTS) {

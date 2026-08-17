@@ -31,9 +31,10 @@ Change the year in one place, `public/options.js`, and every label follows.
 ## What it asks
 
 Thirteen questions per ministry, and a leader with four ministries answers them
-four times — so every one of them has to earn its place.
+four times — so every one of them has to earn its place. One of the thirteen is
+only asked of campuses; see below.
 
-Per ministry: name, its leader, and province.
+Per ministry: name, its leader, province, and whether it currently runs a DTS.
 
 Then **right now**: total staff and how many of them are Khmer; people reached in
 a normal week; villages gone into; churches served and churches led, kept as
@@ -46,6 +47,33 @@ baptisms.
 Graduates rather than enrolments, on purpose. A leader knows how many finished;
 how many started is a number they'd have to go and look up, and it counts people
 who dropped out as reach they didn't have.
+
+## Campuses and ministries
+
+**A campus is a YWAM location that currently runs a DTS. A ministry is one that
+does not.** A campus is one of the ministry expressions, never a separate
+population alongside them — six of the expressions happen to train.
+
+Each card carries one tick, *This location currently runs a DTS*, and it changes
+what the card asks: **only campuses are asked about school graduates.** Most
+expressions are a library, a dorm, a youth centre or a church plant, and asking
+those how many students they graduated is noise on the form and a row of blanks
+in the spreadsheet.
+
+One exception is deliberate. The graduates question stays on screen for any card
+that **already has a figure in it**, tick or no tick, so a location that ran a
+DTS during the reporting year and has since stopped can't end up with a number
+counted in the national total but invisible to the person who reported it.
+
+The totals screen reports both figures side by side — expressions, and how many
+of them are campuses — and each province row says the same for itself. The
+spreadsheet carries a **Runs a DTS** column.
+
+Reports filed before this field existed have no tick and read as `No`, which is
+correct rather than merely convenient: they were written when every card was the
+same, so nothing in them ever claimed to be a campus. The server takes `=== true`
+and nothing else, so a missing field, a truthy string and a `1` all land on `No`
+— the campus count only moves when a leader actually ticked the box.
 
 Then in their own words: the biggest need right now.
 
