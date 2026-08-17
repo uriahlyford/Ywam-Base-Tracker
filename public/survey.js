@@ -36,6 +36,23 @@
     provinceOrder[p.id] = i;
   });
 
+  // The provinces YWAM Cambodia is currently in. The picker offers these; the
+  // rest are behind a link, and the whole 25 stay valid everywhere else.
+  var PRESENT = PROVINCES.filter(function (p) { return p.present; });
+  var presentIds = {};
+  PRESENT.forEach(function (p) { presentIds[p.id] = true; });
+
+  // How many provinces "x of y" is counting against. Normally the 13 we are in,
+  // but a province reported from outside that list has to widen it, or the page
+  // could claim 14 of 13 — and the moment work starts somewhere new, that is
+  // exactly what would happen.
+  function provinceUniverse(t) {
+    var seen = {};
+    PRESENT.forEach(function (p) { seen[p.id] = true; });
+    Object.keys((t && t.byProvince) || {}).forEach(function (id) { seen[id] = true; });
+    return Object.keys(seen).length;
+  }
+
   // ---------- state ----------
 
   var state = {
@@ -46,6 +63,10 @@
     step: "you", // you | ministries | review | done
     report: blankReport(),
     openMinistry: null,
+    // Session-only, deliberately not saved to the draft: the full list is for
+    // the one leader who needs a province we aren't in yet, not a preference to
+    // carry forward for everyone who ever taps it once.
+    showAllProvinces: false,
     error: "",
     busy: false,
     results: null,
@@ -252,7 +273,13 @@
 
   function renderYou() {
     var r = state.report;
-    var picks = PROVINCES.map(function (p) {
+    // Show the full 25 once asked for — and automatically if the draft already
+    // holds a province outside the 13, since hiding a province the leader has
+    // already picked would leave them unable to unpick it.
+    var showAll = state.showAllProvinces || r.provinceIds.some(function (id) { return !presentIds[id]; });
+    var offered = showAll ? PROVINCES : PRESENT;
+
+    var picks = offered.map(function (p) {
       var on = r.provinceIds.indexOf(p.id) !== -1;
       var count = ministriesIn(p.id).length;
       return (
@@ -284,8 +311,17 @@
       "</div>" +
       '<div class="card">' +
         '<label class="label">Which provinces do you report for?</label>' +
-        '<p class="field-note">Pick every province you have ministry in, including ones you oversee from somewhere else. You list the ministries inside each one on the next step.</p>' +
+        '<p class="field-note">' +
+          (showAll
+            ? "All " + PROVINCES.length + " provinces of Cambodia. "
+            : "The " + PRESENT.length + " provinces YWAM Cambodia is currently in. ") +
+          "Pick every one you have ministry in, including ones you oversee from somewhere else. " +
+          "You list the ministries inside each on the next step.</p>" +
         '<div class="pick-grid">' + picks + "</div>" +
+        (showAll
+          ? ""
+          : '<button type="button" class="btn-link pick-more" data-action="show-all-provinces">' +
+            "Started somewhere new? Show all " + PROVINCES.length + " provinces</button>") +
       "</div>" +
       '<button class="btn" data-action="to-ministries">Continue</button>'
     );
@@ -685,7 +721,7 @@
     return (
       hero(t) +
 
-      section("Where we are", t.provinces + " of " + PROVINCES.length + " provinces",
+      section("Where we are", t.provinces + " of " + provinceUniverse(t) + " provinces",
         '<div class="rows">' + provinceRows + "</div>") +
 
       fruitBand(t) +
@@ -703,9 +739,11 @@
 
       '<div class="cta">' +
         reportButton() +
-        (PROVINCES.length - t.provinces > 0
-          ? '<p class="cta-note">' + (PROVINCES.length - t.provinces) + " of the " +
-            PROVINCES.length + " provinces haven't been reported on yet.</p>"
+        // Against the provinces we are actually in, this is a to-do list. Against
+        // all 25 it used to count places YWAM has never been as missing reports.
+        (provinceUniverse(t) - t.provinces > 0
+          ? '<p class="cta-note">' + (provinceUniverse(t) - t.provinces) + " of the " +
+            provinceUniverse(t) + " provinces we work in haven't been reported on yet.</p>"
           : "") +
       "</div>" +
 
@@ -1123,6 +1161,10 @@
     }
 
     switch (d.action) {
+      case "show-all-provinces":
+        state.showAllProvinces = true;
+        render();
+        break;
       case "to-you":
         state.step = "you";
         state.error = "";

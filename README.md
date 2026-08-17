@@ -157,7 +157,16 @@ report survives a closed tab, a dead battery, and a failed submit.
 - The function re-validates everything the browser sends: unknown province ids
   are dropped, counts are clamped, text is length-capped, and a ministry without
   a name, leader and province is not stored at all
-- `public/provinces.js` — the 25 provinces, NCDD gazetteer spellings
+- `public/provinces.js` — the 25 provinces, NCDD gazetteer spellings. The 13
+  YWAM Cambodia currently works in carry `present: true`, and the picker offers
+  only those: choosing from 25 meant reading past twelve places YWAM has never
+  been. The rest stay one tap away behind **Show all 25 provinces**, and the
+  server still validates against all 25, so starting work somewhere new is a
+  link away rather than a deploy away. Add or remove a `present` flag as the
+  national picture changes — that one field drives the picker, the "x of y"
+  count on the totals screen and the not-yet-reported note. That count widens
+  by itself if a report ever arrives from a province outside the 13, so it can
+  never read "14 of 13".
 - `public/options.js` — the reporting year, in one place. Change it there and
   every label that names a year follows.
 
