@@ -286,6 +286,33 @@
 
   // --- step 2: ministries, grouped by province ---
 
+  // What a province block says under its cards depends on how many are in it,
+  // because the two ways of getting this wrong are opposites. A leader whose
+  // province has one ministry saw "1 ministry" and an Add button and wondered
+  // what else was being asked of them; a leader whose province has three often
+  // reported only the one they lead. So the block asks the question out loud
+  // instead of printing a count, and says plainly that one is a whole answer.
+  function provincePrompt(pid, n) {
+    var where = esc(provinceName(pid));
+    if (!n) {
+      return (
+        '<div class="prov-block-empty">Nothing listed in ' + where + " yet. " +
+        "Your base counts as one — list it here like anything else.</div>"
+      );
+    }
+    if (n === 1) {
+      return (
+        '<p class="prov-block-ask">Are there other ministries in ' + where + "? " +
+        "Plenty of provinces have just the one — if so, this is finished. If there " +
+        "are others, add them, including any led by someone else.</p>"
+      );
+    }
+    return (
+      '<p class="prov-block-ask">Anything else in ' + where + "? " +
+      "Add a card for every ministry there, including ones led by someone else.</p>"
+    );
+  }
+
   function renderMinistries() {
     var r = state.report;
     var blocks = r.provinceIds.map(function (pid) {
@@ -294,12 +321,18 @@
         '<section class="prov-block">' +
           '<div class="prov-block-head">' +
             '<div class="prov-block-name">' + esc(provinceName(pid)) + "</div>" +
-            '<div class="prov-block-count">' + list.length + " " + plural(list.length, "ministry", "ministries") + "</div>" +
+            // Only worth printing once there is more than one to keep track of.
+            // At one it read as a target to beat rather than a fact.
+            (list.length > 1
+              ? '<div class="prov-block-count">' + list.length + " ministries</div>"
+              : "") +
           "</div>" +
-          (list.length
-            ? list.map(renderMinistryCard).join("")
-            : '<div class="prov-block-empty">No ministries listed here yet.</div>') +
-          '<button type="button" class="btn-add" data-add-ministry="' + pid + '">+ Add a ministry in ' + esc(provinceName(pid)) + "</button>" +
+          list.map(renderMinistryCard).join("") +
+          provincePrompt(pid, list.length) +
+          '<button type="button" class="btn-add" data-add-ministry="' + pid + '">' +
+            (list.length ? "+ Add another ministry in " : "+ Add the ministry in ") +
+            esc(provinceName(pid)) +
+          "</button>" +
         "</section>"
       );
     }).join("");
@@ -310,7 +343,7 @@
       '<div class="step-head">' +
         '<div class="step-kicker">Step 2 of 3</div>' +
         '<h1 class="step-title">Your ministries</h1>' +
-        '<p class="step-sub">One card per ministry, under the province it sits in. If a province has three ministries with three different leaders, add three cards. Only the name, the leader and the staff count are required — fill in the rest where you know it, and leave anything you don\'t.</p>' +
+        '<p class="step-sub">One card per ministry, under the province it sits in. Your base counts as one, and plenty of provinces have only that — a single card is a finished answer, not a half-filled one. Where a province has several, like three ministries under three different leaders, add a card for each, including any led by someone else. Only the name, the leader and the staff count are required — fill in the rest where you know it, and leave anything you don\'t.</p>' +
       "</div>" +
       errorBox() +
       blocks +
