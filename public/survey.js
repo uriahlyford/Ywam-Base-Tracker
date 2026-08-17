@@ -720,19 +720,13 @@
     );
   }
 
-  // The lockup at the top of the dark panel. This is the app's own mark, not the
-  // YWAM logo — drop the real asset in here when there is one.
+  // The lockup at the top of the dark panel. Same /logo.svg the topbar uses — the
+  // mark carries its own blue and white, so it sits on this dark panel unchanged.
   function heroTop() {
     return (
       '<div class="hero-top">' +
         '<span class="hero-mark" aria-hidden="true">' +
-          '<svg viewBox="0 0 40 40" width="30" height="30">' +
-            '<rect width="40" height="40" rx="11" fill="currentColor" />' +
-            '<g stroke="#FFFFFF" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
-              '<circle cx="20" cy="15.5" r="4" />' +
-              '<path d="M11 30.5c0-5 4-8.5 9-8.5s9 3.5 9 8.5" />' +
-            "</g>" +
-          "</svg>" +
+          '<img src="/logo.svg" width="44" height="35" alt="" />' +
         "</span>" +
         '<span class="hero-org">YWAM Cambodia</span>' +
       "</div>"

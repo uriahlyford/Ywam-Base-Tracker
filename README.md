@@ -133,6 +133,24 @@ report survives a closed tab, a dead battery, and a failed submit.
 - `public/options.js` — the reporting year, in one place. Change it there and
   every label that names a year follows.
 
+## The logo
+
+`public/logo.svg` is the YWAM Cambodia mark — the country in brand blue with the
+white figure inside — traced from the supplied artwork into two paths, about
+4.5KB, on a transparent background so it sits on the white topbar and the black
+hero alike. It is one file used in both places, so the mark can't drift between
+them.
+
+The tab icon is a **different crop on purpose**. `public/favicon.svg` is the
+figure alone on a blue tile, because at 16px the country outline collapses into a
+blue smudge while the figure still reads. `public/icon-180.png` is the full mark
+on black, as the artwork was supplied, for an iOS home screen.
+
+The blue is `#2F7DC6` — the `--brand` token the rest of the app already uses,
+rather than the slightly duller blue measured off the supplied JPEG. If the real
+brand blue is neither, change it in `logo.svg`, `favicon.svg` and `--brand` in
+`styles.css` together.
+
 The **Download as a spreadsheet** button on the totals screen writes one row per
 ministry, with a UTF-8 BOM so Excel opens Khmer and accented names correctly, and
 a leading quote on any cell starting with `=`, `+`, `-` or `@` so a spreadsheet

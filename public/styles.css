@@ -509,7 +509,9 @@ input:focus, select:focus, textarea:focus {
 }
 
 .hero-top { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
-.hero-mark { display: flex; color: var(--brand); }
+/* The mark carries its own colours now, so neither of these sets a text colour
+   for it to inherit. */
+.hero-mark { display: flex; }
 .hero-org {
   font-size: 12px;
   font-weight: 800;
