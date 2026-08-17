@@ -53,6 +53,50 @@
     return Object.keys(seen).length;
   }
 
+  // ---------- what a card is ----------
+
+  // Three kinds, and the difference between the last two is the whole reason
+  // this exists. A campus and a ministry location are both *places* — they are
+  // what "how many ministries do we have" is counting. A campus ministry is a
+  // work belonging to a campus: Battambang's ministries are Battambang, not
+  // five more dots on the map, and counting them as locations made the national
+  // figure grow every time a campus described itself properly.
+  //
+  // So campus ministries are recorded, shown under their province, and left out
+  // of the location count. A campus with six ministries is still one location.
+  var KINDS = [
+    { id: "campus", label: "A campus", hint: "it runs a DTS", short: "DTS campus" },
+    { id: "location", label: "A ministry location", hint: "a place of its own", short: "" },
+    { id: "campus-ministry", label: "A ministry of the campus here", hint: "part of the campus, not its own location", short: "Campus ministry" },
+  ];
+  var KIND_IDS = KINDS.map(function (k) { return k.id; });
+
+  // The one place the question "what kind is this" is answered. Reports filed
+  // before `kind` existed carry the old runsDts boolean, and reports older than
+  // that carry neither — both read correctly here, so nothing needs migrating
+  // and no screen has to know that two older shapes exist.
+  function kindOf(m) {
+    if (KIND_IDS.indexOf(m.kind) !== -1) return m.kind;
+    return m.runsDts === true ? "campus" : "location";
+  }
+
+  function isCampus(m) { return kindOf(m) === "campus"; }
+  function isUnderCampus(m) { return kindOf(m) === "campus-ministry"; }
+  // Campuses and standalone locations are both places; campus ministries are not.
+  function isLocation(m) { return !isUnderCampus(m); }
+
+  function kindShort(m) {
+    for (var i = 0; i < KINDS.length; i++) if (KINDS[i].id === kindOf(m)) return KINDS[i].short;
+    return "";
+  }
+
+  // The spreadsheet needs every row to say what it is, including the plain
+  // locations that carry no badge on screen.
+  function kindLabel(m) {
+    for (var i = 0; i < KINDS.length; i++) if (KINDS[i].id === kindOf(m)) return KINDS[i].label;
+    return "";
+  }
+
   // ---------- state ----------
 
   var state = {
@@ -90,12 +134,14 @@
       provinceId: provinceId,
       name: "",
       leaderName: "",
-      // A campus is a location that currently runs a DTS; everything else is a
-      // ministry. Only the campuses are asked about school graduates, because
-      // asking a library or a dorm how many students it graduated is noise.
-      // Older drafts and older stored reports have no such field and read as
-      // false, which is right — they were written when every card was the same.
-      runsDts: false,
+      // What kind of thing this is — see KINDS. Defaults to a location, the
+      // neutral answer: a card is its own place until someone says it belongs
+      // to the campus.
+      kind: "location",
+      // One line on what it does. The point of this round of the survey is to
+      // find out how many ministries there are and roughly what each one is,
+      // so this is the second half of that question.
+      doing: "",
       // as of today
       staffTotal: "",
       staffCambodian: "",
@@ -226,7 +272,7 @@
 
   function ministrySub(m) {
     var bits = [];
-    if (m.runsDts) bits.push("DTS campus");
+    if (kindShort(m)) bits.push(kindShort(m));
     if (m.leaderName) bits.push("Led by " + m.leaderName);
     if (m.provinceId) bits.push(provinceName(m.provinceId));
     if (m.staffTotal !== "") bits.push(n(m.staffTotal) + " staff");
@@ -439,6 +485,45 @@
       '<textarea data-min="' + m.id + '" data-key="' + key + '">' + esc(m[key]) + "</textarea>");
   }
 
+  // "A ministry of the campus here" is only offered once the province actually
+  // has a campus card — until then there is no campus for it to belong to, and
+  // offering it would only invite a card that says it is part of nothing.
+  function kindPicker(m) {
+    var here = ministriesIn(m.provinceId);
+    var campus = null;
+    for (var i = 0; i < here.length; i++) {
+      if (here[i].id !== m.id && isCampus(here[i])) { campus = here[i]; break; }
+    }
+    var mine = kindOf(m);
+
+    var opts = KINDS.filter(function (k) {
+      return k.id !== "campus-ministry" || campus || mine === "campus-ministry";
+    }).map(function (k) {
+      var hint = k.hint;
+      if (k.id === "campus-ministry" && campus && campus.name) hint = "part of " + campus.name + ", not its own location";
+      return (
+        '<button type="button" class="pick pick-wide' + (mine === k.id ? " on" : "") + '"' +
+          ' data-set-kind="' + k.id + '" data-min-id="' + m.id + '"' +
+          ' aria-pressed="' + (mine === k.id ? "true" : "false") + '">' +
+          '<span class="pick-box pick-box-round" aria-hidden="true">✓</span>' +
+          '<span class="pick-name">' + esc(k.label) +
+            '<span class="pick-count"> — ' + esc(hint) + "</span>" +
+          "</span>" +
+        "</button>"
+      );
+    }).join("");
+
+    return (
+      '<div class="kind-pick">' +
+        '<span class="label">What is it?</span>' +
+        (campus || mine === "campus-ministry"
+          ? '<p class="field-note">A campus ministry belongs to the campus and is not counted as a separate location — six ministries at one campus are still one place on the map.</p>'
+          : "") +
+        opts +
+      "</div>"
+    );
+  }
+
   function renderMinistryBody(m) {
     var provinceOptions = state.report.provinceIds.map(function (pid) {
       return '<option value="' + pid + '"' + (pid === m.provinceId ? " selected" : "") + ">" + esc(provinceName(pid)) + "</option>";
@@ -450,12 +535,8 @@
         textField(m, "name", "Ministry name", "what you call it") +
         textField(m, "leaderName", "Who leads it", "the person responsible on the ground") +
         fieldWrap("Province", "", '<select data-min="' + m.id + '" data-key="provinceId">' + provinceOptions + "</select>") +
-        '<button type="button" class="pick pick-wide' + (m.runsDts ? " on" : "") + '" data-toggle-dts="' + m.id + '" aria-pressed="' + (m.runsDts ? "true" : "false") + '">' +
-          '<span class="pick-box" aria-hidden="true">✓</span>' +
-          '<span class="pick-name">This location currently runs a DTS' +
-            '<span class="pick-count"> — that makes it a campus</span>' +
-          "</span>" +
-        "</button>" +
+        textField(m, "doing", "What it does", "one line — a school, a library, a church plant, youth work") +
+        kindPicker(m) +
       "</div>" +
 
       '<div class="sect">' +
@@ -486,7 +567,7 @@
         // ran a DTS in the reporting year and has since stopped would otherwise
         // have its number hidden while it still counted towards the national
         // total, which is the one thing worse than asking a needless question.
-        (m.runsDts || m.schoolGraduates !== ""
+        (isCampus(m) || m.schoolGraduates !== ""
           ? numField(m, "schoolGraduates", "Students graduated from our YWAM training schools", "optional") +
             '<div style="height:14px"></div>'
           : "") +
@@ -517,7 +598,8 @@
       return ministriesIn(pid).map(function (m) {
         var missing = missingFrom(m);
         var facts = [];
-        if (m.runsDts) facts.push("DTS campus");
+        if (kindShort(m)) facts.push(kindShort(m));
+        if (m.doing) facts.push(m.doing);
         if (m.staffTotal !== "") facts.push(n(m.staffTotal) + " staff");
         if (m.peopleWeekly !== "") facts.push(fmt(n(m.peopleWeekly)) + " people a week");
         if (m.schoolGraduates !== "") facts.push(fmt(n(m.schoolGraduates)) + " school graduates in " + YEAR);
@@ -605,16 +687,22 @@
     t.staffSplitKnown = 0;
     t.ministriesWithSplit = 0;
 
-    // Campuses are a subset of the ministries, never a separate population —
-    // a campus is one of the 24 expressions, not a 25th thing alongside them.
+    // `ministries` counts LOCATIONS — campuses and standalone ministries. A
+    // campus ministry is part of its campus, so it is counted on its own line
+    // and never added here: a campus that describes its six works must not make
+    // the national figure jump by six places.
+    //
+    // Campuses stay a subset of the locations, never a population beside them.
     t.campuses = 0;
+    t.campusMinistries = 0;
 
     var provinceSeen = {};
 
     reports.forEach(function (r) {
       (r.ministries || []).forEach(function (m) {
-        t.ministries += 1;
-        if (m.runsDts) t.campuses += 1;
+        if (isUnderCampus(m)) t.campusMinistries += 1;
+        else t.ministries += 1;
+        if (isCampus(m)) t.campuses += 1;
         CURRENT_SUMS.forEach(function (k) { t[k] += n(m[k]); });
         YEAR_SUMS.forEach(function (k) { t[k] += n(m[k]); });
 
@@ -626,9 +714,10 @@
         var pid = m.provinceId;
         if (!pid) return;
         provinceSeen[pid] = true;
-        if (!t.byProvince[pid]) t.byProvince[pid] = { ministries: 0, campuses: 0, staff: 0, weekly: 0 };
-        t.byProvince[pid].ministries += 1;
-        if (m.runsDts) t.byProvince[pid].campuses += 1;
+        if (!t.byProvince[pid]) t.byProvince[pid] = { ministries: 0, campuses: 0, campusMinistries: 0, staff: 0, weekly: 0 };
+        if (isUnderCampus(m)) t.byProvince[pid].campusMinistries += 1;
+        else t.byProvince[pid].ministries += 1;
+        if (isCampus(m)) t.byProvince[pid].campuses += 1;
         t.byProvince[pid].staff += n(m.staffTotal);
         t.byProvince[pid].weekly += n(m.peopleWeekly);
       });
@@ -705,8 +794,11 @@
           "</div>" +
           '<div class="prow-track"><span style="width:' +
             Math.max(3, Math.round((row.staff / biggest) * 100)) + '%"></span></div>' +
-          '<div class="prow-sub">' + row.ministries + " " + plural(row.ministries, "ministry", "ministries") +
+          '<div class="prow-sub">' + row.ministries + " " + plural(row.ministries, "location", "locations") +
             (row.campuses ? " · " + row.campuses + " " + plural(row.campuses, "DTS campus", "DTS campuses") : "") +
+            // The one place campus ministries are shown, because this is where
+            // they mean something: inside the province, under their campus.
+            (row.campusMinistries ? " · " + row.campusMinistries + " campus " + plural(row.campusMinistries, "ministry", "ministries") : "") +
           "</div>" +
         "</div>"
       );
@@ -759,9 +851,12 @@
   // the one that is never quietly built out of half the reports.
   function hero(t) {
     var side = [
-      [t.ministries, plural(t.ministries, "ministry", "ministries")],
-      // Next to the ministry count on purpose: the two together are the shape
-      // of the network — this many expressions, of which this many train.
+      // Locations, not cards. Campus ministries are deliberately absent from
+      // the hero — they belong to a campus already counted here, and the
+      // province rows below are where they are named.
+      [t.ministries, plural(t.ministries, "ministry location", "ministry locations")],
+      // Next to it on purpose: the two together are the shape of the network —
+      // this many places, of which this many train.
       [t.campuses, plural(t.campuses, "DTS campus", "DTS campuses")],
       [t.peopleWeekly, "reached a week"],
       [t.schoolGraduates, "graduates in " + YEAR],
@@ -928,7 +1023,8 @@
     ["Province", function (r, m) { return provinceName(m.provinceId); }],
     ["Ministry", function (r, m) { return m.name; }],
     ["Ministry leader", function (r, m) { return m.leaderName; }],
-    ["Runs a DTS", function (r, m) { return m.runsDts ? "Yes" : "No"; }],
+    ["What it is", function (r, m) { return kindLabel(m); }],
+    ["What it does", function (r, m) { return m.doing || ""; }],
     ["Staff total", function (r, m) { return m.staffTotal; }],
     ["Staff Khmer", function (r, m) { return m.staffCambodian; }],
     ["People reached weekly", function (r, m) { return m.peopleWeekly; }],
@@ -1108,7 +1204,7 @@
 
   document.addEventListener("click", function (e) {
     var el = e.target.closest(
-      "[data-goto],[data-action],[data-province],[data-add-ministry],[data-toggle-ministry],[data-toggle-dts],[data-remove-ministry]"
+      "[data-goto],[data-action],[data-province],[data-add-ministry],[data-toggle-ministry],[data-set-kind],[data-remove-ministry]"
     );
     if (!el) return;
     var d = el.dataset;
@@ -1138,13 +1234,18 @@
       return;
     }
 
-    if (d.toggleDts) {
-      var dtsTarget = findMinistry(d.toggleDts);
-      if (!dtsTarget) return;
-      dtsTarget.runsDts = !dtsTarget.runsDts;
+    if (d.setKind) {
+      var kindTarget = findMinistry(d.minId);
+      if (!kindTarget || KIND_IDS.indexOf(d.setKind) === -1) return;
+      kindTarget.kind = d.setKind;
+      // Deliberately not clearing schoolGraduates when a card stops being a
+      // campus. The field stays on screen for any value already typed, so it
+      // can never become a number counted in the national total that nobody can
+      // see — and a location that ran a DTS during the year and has since
+      // stopped still has real graduates to report.
       saveDraft();
-      // A full render, not just the button: this decides whether the graduates
-      // question is on screen at all.
+      // A full render: this changes what the card asks, and it changes which
+      // options the other cards in this province are offered.
       render();
       return;
     }

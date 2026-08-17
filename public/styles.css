@@ -330,6 +330,13 @@ input:focus, select:focus, textarea:focus {
    the others. */
 .pick-wide { width: 100%; margin-top: 4px; }
 
+/* What a card is: campus, ministry location, or a ministry of the campus. One
+   answer only, so the boxes are round — a square box reads as "tick all that
+   apply", and this is the one question on the card where that would be wrong. */
+.kind-pick { margin-top: 18px; }
+.kind-pick .field-note { margin: 4px 0 8px; }
+.pick-box-round { border-radius: 50%; }
+
 /* The way out of the shortened province list. Quiet on purpose — most leaders
    should never need it. */
 .pick-more { margin-top: 12px; font-size: 13px; }

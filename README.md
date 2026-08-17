@@ -30,11 +30,12 @@ Change the year in one place, `public/options.js`, and every label follows.
 
 ## What it asks
 
-Thirteen questions per ministry, and a leader with four ministries answers them
-four times — so every one of them has to earn its place. One of the thirteen is
+Fourteen questions per ministry, and a leader with four ministries answers them
+four times — so every one of them has to earn its place. One of the fourteen is
 only asked of campuses; see below.
 
-Per ministry: name, its leader, province, and whether it currently runs a DTS.
+Per ministry: name, one line on what it does, its leader, province, and which of
+the three kinds it is.
 
 Then **right now**: total staff and how many of them are Khmer; people reached in
 a normal week; villages gone into; churches served and churches led, kept as
@@ -47,33 +48,6 @@ baptisms.
 Graduates rather than enrolments, on purpose. A leader knows how many finished;
 how many started is a number they'd have to go and look up, and it counts people
 who dropped out as reach they didn't have.
-
-## Campuses and ministries
-
-**A campus is a YWAM location that currently runs a DTS. A ministry is one that
-does not.** A campus is one of the ministry expressions, never a separate
-population alongside them — six of the expressions happen to train.
-
-Each card carries one tick, *This location currently runs a DTS*, and it changes
-what the card asks: **only campuses are asked about school graduates.** Most
-expressions are a library, a dorm, a youth centre or a church plant, and asking
-those how many students they graduated is noise on the form and a row of blanks
-in the spreadsheet.
-
-One exception is deliberate. The graduates question stays on screen for any card
-that **already has a figure in it**, tick or no tick, so a location that ran a
-DTS during the reporting year and has since stopped can't end up with a number
-counted in the national total but invisible to the person who reported it.
-
-The totals screen reports both figures side by side — expressions, and how many
-of them are campuses — and each province row says the same for itself. The
-spreadsheet carries a **Runs a DTS** column.
-
-Reports filed before this field existed have no tick and read as `No`, which is
-correct rather than merely convenient: they were written when every card was the
-same, so nothing in them ever claimed to be a campus. The server takes `=== true`
-and nothing else, so a missing field, a truthy string and a `1` all land on `No`
-— the campus count only moves when a leader actually ticked the box.
 
 Then in their own words: the biggest need right now.
 
@@ -101,9 +75,74 @@ list of nineteen — sports, English, kids clubs, church planting and the rest.
 That was the longest single control on the card, and it existed to feed one
 chart on the dashboard. Both are gone.
 
+The one-line **What it does** is not that list coming back. Nineteen tick-boxes
+were a taxonomy to count by; one line in a leader's own words is a description to
+read, it fits any ministry without the list having to anticipate it, and it costs
+a sentence rather than a screenful of scrolling.
+
 All of that is gone. The rule applied: a question stays only if a leader can
 answer it from memory and the answer changes what the totals say. A breakdown
 nobody reads costs the same to fill in as one that gets used.
+
+## Campuses, locations and campus ministries
+
+Every card is one of three kinds, and the difference between the last two is the
+whole point.
+
+| kind | what it is | counted as a location? |
+|---|---|---|
+| **A campus** | a YWAM location that currently runs a DTS | yes |
+| **A ministry location** | a place of its own, no DTS | yes |
+| **A ministry of the campus here** | a work belonging to the campus in its province | **no** |
+
+**A campus with six ministries is still one place on the map.** Battambang's
+ministries are Battambang. Counting them as locations made the national figure
+grow every time a campus described itself properly, which punished the leaders
+who answered in most detail. So campus ministries are recorded, named under
+their province, and left out of the location count. The hero reads *ministry
+locations* and *DTS campuses*; the campus ministries appear on the province row
+— `1 location · 1 DTS campus · 2 campus ministries` — which is where they mean
+something.
+
+The third option only appears once the province **has** a campus card, and it
+names it: *part of YWAM Battambang, not its own location*. Until there is a
+campus there is nothing for a campus ministry to belong to, and offering it
+would only invite a card that says it is part of nothing.
+
+**Only campuses are asked about school graduates.** Most expressions are a
+library, a dorm, a youth centre or a church plant, and asking those how many
+students they graduated is noise on the form and a row of blanks in the
+spreadsheet. One exception is deliberate: the graduates question stays on screen
+for any card that **already has a figure in it**, whatever its kind, so a
+location that ran a DTS during the reporting year and has since stopped can't
+end up with a number counted in the national total but invisible to the person
+who reported it. Changing a card's kind never clears what was typed.
+
+`kindOf()` in `survey.js` is the single place the question is answered, and it
+reads all three generations of the record: a `kind`, the older `runsDts`
+boolean, or neither. Nothing needs migrating and no screen has to know that two
+older shapes exist. The server mirrors it — an unknown `kind` falls back to
+`runsDts`, then to `location`, so only an explicit `campus-ministry` ever takes
+a row out of the location count.
+
+## Built to hand over to the GP Impact app
+
+The plan is for each ministry location to eventually carry its own KPIs and feed
+the GP Impact dashboard. None of that is here yet — this round is still just
+"how many ministries are there, and roughly what does each one do". Two pieces of
+the shape are in place so the later work isn't a migration:
+
+- **Every ministry has a stable `id`,** assigned client-side and preserved by the
+  server across re-filings. A ministry is otherwise only identifiable by its
+  name, and a rename would silently orphan any KPI hanging off it. Ids are
+  sanitised to `[a-z0-9-]`, capped at 40 characters, and de-duplicated across the
+  whole report — a bad id is replaced, never a reason to reject a real report.
+- **`doing`** — one line on what the ministry actually does, asked right after
+  its name. It is the second half of the question this round exists to answer,
+  and it is what a GP-side directory would show under each name.
+
+The kinds matter here too: a campus ministry is the level a GP department maps
+to, while a location is the level a base maps to.
 
 ## Access
 

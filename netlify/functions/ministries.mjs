@@ -29,8 +29,14 @@ const YEAR_COUNTS = [
   "schoolGraduates", "newBelievers", "baptisms",
 ];
 
-const SHORT_TEXTS = ["name", "leaderName"];
+const SHORT_TEXTS = ["name", "leaderName", "doing"];
 const LONG_TEXTS = ["biggestNeed"];
+
+// What a card is. A campus runs a DTS; a location is a place of its own; a
+// campus ministry belongs to the campus in its province and is NOT counted as
+// a location — see the README. Duplicated from KINDS in public/survey.js
+// because a function cannot import a browser script: change one, change both.
+const KINDS = new Set(["campus", "location", "campus-ministry"]);
 
 function store() {
   return getStore(STORE_NAME);
@@ -47,7 +53,26 @@ function count(v) {
   return Math.round(Math.min(x, MAX_COUNT));
 }
 
-function cleanMinistry(raw) {
+// A ministry's own id, kept so that something outside this survey — the GP
+// Impact app, a KPI attached to one particular ministry — can point at a row
+// and still be pointing at it after the leader re-files their report. Without
+// it a ministry is only identifiable by its name, and a rename would silently
+// orphan whatever was hanging off it.
+//
+// Sanitised rather than trusted: it ends up in JSON that other things read, and
+// an id is worthless if it can carry markup or run to a kilobyte. Anything
+// unusable is replaced, never rejected — a bad id must not cost a real report.
+function ministryId(raw, index, taken) {
+  let id = String(raw && raw.id !== undefined && raw.id !== null ? raw.id : "")
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "")
+    .slice(0, 40);
+  if (!id || taken.has(id)) id = `m${index}-${Math.random().toString(36).slice(2, 8)}`;
+  taken.add(id);
+  return id;
+}
+
+function cleanMinistry(raw, index, taken) {
   if (!raw || typeof raw !== "object") return null;
 
   const provinceId = PROVINCE_IDS.has(raw.provinceId) ? raw.provinceId : "";
@@ -58,14 +83,16 @@ function cleanMinistry(raw) {
   if (!provinceId || !name || !leaderName) return null;
 
   const out = {
+    id: ministryId(raw, index, taken),
     provinceId,
     name,
     leaderName,
-    // A campus is a location that currently runs a DTS. Strictly `=== true`, so
-    // a missing field on an older report, and any truthy string a crafted
-    // request might send, both land on false rather than inflating the campus
-    // count — the figure only moves when a leader actually ticked the box.
-    runsDts: raw.runsDts === true,
+    // Anything that isn't one of the three known kinds falls back to the old
+    // runsDts boolean, and then to "location" — so a report from a client that
+    // predates this field, and a crafted request sending nonsense, both land on
+    // the answer that claims the least. Only an explicit "campus-ministry" ever
+    // takes a row out of the location count.
+    kind: KINDS.has(raw.kind) ? raw.kind : (raw.runsDts === true ? "campus" : "location"),
   };
 
   for (const key of SHORT_TEXTS) {
@@ -130,9 +157,12 @@ async function handlePost(s, req) {
     return Response.json({ error: "Missing the name of the leader reporting." }, { status: 400 });
   }
 
+  // `taken` runs across the whole report so two cards cannot end up sharing an
+  // id, which is the one way a stable id would be worse than none at all.
+  const taken = new Set();
   const ministries = (Array.isArray(raw.ministries) ? raw.ministries : [])
     .slice(0, MAX_MINISTRIES)
-    .map(cleanMinistry)
+    .map((m, i) => cleanMinistry(m, i, taken))
     .filter(Boolean);
 
   if (!ministries.length) {
