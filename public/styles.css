@@ -271,7 +271,19 @@ input:focus, select:focus, textarea:focus {
   margin-bottom: 14px;
 }
 
-.loading { text-align: center; color: var(--muted); padding: 40px 0; }
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  padding: 48px 0;
+}
+.loading-mark { border-radius: 7px; animation: spin 1s linear infinite; }
+
+/* A refresh that failed while totals are already on screen: say so above them
+   rather than replacing what the reader was looking at. */
+.error-inline { margin-bottom: 12px; }
 
 .success { text-align: center; padding: 34px 18px; }
 .success-mark { font-size: 40px; line-height: 1; }
@@ -775,6 +787,206 @@ input:focus, select:focus, textarea:focus {
   text-align: center;
 }
 .footer p { margin: 0; font-size: 12px; color: var(--muted); }
+
+/* ---------- a province row, opened ---------- */
+
+/* The row is a <button> now, so everything a button brings has to be undone
+   before the layout inside it reads the same as it did as a <div>. */
+.prow {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 4px 2px;
+  margin: -4px -2px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+.prow:hover { background: var(--surface); }
+.prow:active { transform: scale(0.99); background: var(--surface); }
+.prow-sub { position: relative; padding-right: 16px; }
+.prow-go {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-52%);
+  font-size: 16px;
+  line-height: 1;
+  color: var(--brand);
+  opacity: 0.75;
+}
+
+.dsheet-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(10, 14, 20, 0.44);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: dsheet-fade 0.16s ease;
+}
+@keyframes dsheet-fade { from { opacity: 0; } }
+
+.dsheet {
+  width: 100%;
+  max-width: 620px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border-radius: 18px 18px 0 0;
+  padding: 8px 16px calc(18px + env(safe-area-inset-bottom));
+  animation: dsheet-up 0.22s cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+@keyframes dsheet-up { from { transform: translateY(14px); } }
+
+.dsheet-grab {
+  width: 38px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line);
+  margin: 4px auto 10px;
+  flex-shrink: 0;
+}
+.dsheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.dsheet-title { margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -0.01em; }
+.dsheet-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.dsheet-x {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.dsheet-x:hover { background: var(--surface); color: var(--ink); }
+
+.dsheet-figs {
+  display: flex;
+  gap: 26px;
+  padding: 14px 0 12px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.dsheet-figs b { display: block; font-size: 24px; font-weight: 800; color: var(--brand); line-height: 1.1; }
+.dsheet-figs span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* The list is the only part that scrolls, so the province name and its two
+   figures stay put while you read down it. */
+.dsheet-body { overflow-y: auto; -webkit-overflow-scrolling: touch; padding-top: 4px; }
+
+.dsheet-row { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.dsheet-row:last-of-type { border-bottom: 0; }
+/* Indented and ruled, so a campus ministry reads as belonging to the campus
+   above it rather than sitting beside it as an equal. */
+.dsheet-row.is-under {
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 2px solid var(--brand-soft);
+}
+.dsheet-name { font-weight: 700; font-size: 15.5px; }
+.dsheet-doing { font-size: 13.5px; color: var(--ink); margin-top: 3px; }
+.dsheet-by { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+.dsheet-facts { font-size: 12.5px; color: var(--ink); margin-top: 6px; }
+.dsheet-year { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+.dsheet-need { font-size: 12.5px; color: var(--ink); margin-top: 7px; }
+.dsheet-need span {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--brand);
+  margin-right: 5px;
+}
+.dsheet-empty, .dsheet-who { font-size: 12.5px; color: var(--muted); }
+.dsheet-who { margin: 14px 0 0; }
+
+.tag {
+  display: inline-block;
+  vertical-align: 2px;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* The page behind must not scroll while the sheet is up. */
+body.sheet-open { overflow: hidden; }
+
+/* ---------- pull to refresh ---------- */
+
+.ptr {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  margin-left: -22px;
+  z-index: 30;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0);
+}
+/* Only follows the finger while dragging; on release it snaps back, which is
+   what makes the coin feel let go of rather than dropped. */
+.ptr:not(.is-pulling) { transition: transform 0.25s ease, opacity 0.25s ease; }
+.ptr-coin {
+  width: 44px;
+  height: 44px;
+  margin-top: -50px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 14px rgba(10, 14, 20, 0.13);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.btn-refresh { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-refresh[disabled] { opacity: 0.7; cursor: default; }
+.btn-refresh-mark { border-radius: 4px; }
+.btn-refresh-mark.is-spinning { animation: spin 0.9s linear infinite; }
+
+/* ---------- the feel of a tap ---------- */
+
+/* Nothing on a phone gives feedback unless it is asked to. These are the
+   controls a leader touches most; without them a tap on a slow connection
+   reads as the app having missed it. */
+.btn, .btn-ghost, .btn-add, .pick, .tab, .min-summary, .icon-btn {
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active, .btn-ghost:active, .btn-add:active, .pick:active, .min-summary:active, .icon-btn:active {
+  transform: scale(0.985);
+}
+
+/* Both boxes on the same line even when one label wraps and the other doesn't
+   — "New believers / optional" wraps where "Baptisms" doesn't, which left the
+   two inputs at different heights. */
+.pair { align-items: end; }
 
 @media (min-width: 620px) {
   .pick-grid { grid-template-columns: 1fr 1fr 1fr; }

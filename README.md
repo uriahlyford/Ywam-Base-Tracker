@@ -144,6 +144,37 @@ the shape are in place so the later work isn't a migration:
 The kinds matter here too: a campus ministry is the level a GP department maps
 to, while a location is the level a base maps to.
 
+## The totals screen
+
+Two tabs: **At a glance** and **Enter a report**. The second used to say "My
+report", which read like somewhere to go and look at something rather than the
+half of the app where numbers go in.
+
+**Every province row opens.** Tapping one raises a sheet listing what was
+reported there — each ministry with what it is, what it does, who leads it, its
+staff and reach, its year's fruit and its biggest need. Campus ministries are
+indented under their campus with a rule down the side, so the shape of the place
+is visible rather than just its totals. The sheet renders into its own `#sheet`
+root outside `#app`, so opening it never re-renders the page underneath and
+never moves the reader's scroll position. Escape, the ✕ and the backdrop all
+close it.
+
+**Pull down to refresh.** Only on the totals, only from the very top, and only
+for a deliberate downward drag — looser than that and it fires while someone is
+scrolling back up a long list, which reads as the app reloading at random. The
+coin turns with the finger, because a coin that only slides looks like a stuck
+image; on release the inline transform is cleared so the CSS spin can take over.
+It drops from the measured bottom of the sticky header rather than a fixed
+offset, or it lands on top of the tab buttons.
+
+**A refresh keeps what you were reading.** Only a first load takes the screen
+over; after that the totals stay put and the work shows in the spinning mark on
+the Refresh button and in the pull coin. A refresh that *fails* keeps them too,
+with the error above them — losing the figures you already had is a strange
+price to pay for asking for newer ones. And `render()` only scrolls to the top
+when the screen itself changed, so adding a ministry from a button at the bottom
+of a long province no longer throws you back up to the header.
+
 ## Access
 
 - **Reading the totals is open** to anyone with the link.

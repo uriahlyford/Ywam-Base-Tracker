@@ -38,11 +38,19 @@
          thing is for before being asked to fill anything in. -->
     <nav class="tabs">
       <button class="tab active" data-goto="results" id="tab-results" type="button">At a glance</button>
-      <button class="tab" data-goto="form" id="tab-form" type="button">My report</button>
+      <!-- "My report" read like a place to go and look at something. This is the
+           half of the app where a leader puts numbers in, and the label should
+           say so before they tap it. -->
+      <button class="tab" data-goto="form" id="tab-form" type="button">Enter a report</button>
     </nav>
   </header>
 
   <main id="app" class="app"></main>
+
+  <!-- The province sheet lives outside #app so opening it does not re-render the
+       totals — a re-render scrolls back to the top, which would throw away the
+       reader's place the moment they tapped a province halfway down the list. -->
+  <div id="sheet"></div>
 
   <footer class="footer">
     <p>Your draft is saved on this device as you type, so you can stop and come back.</p>

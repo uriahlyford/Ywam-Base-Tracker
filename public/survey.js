@@ -111,6 +111,8 @@
     // the one leader who needs a province we aren't in yet, not a preference to
     // carry forward for everyone who ever taps it once.
     showAllProvinces: false,
+    // Which province's sheet is open, if any.
+    detailProvince: null,
     error: "",
     busy: false,
     results: null,
@@ -308,7 +310,39 @@
     } else {
       app.innerHTML = renderDone();
     }
-    window.scrollTo(0, 0);
+    renderSheet();
+    // Only jump to the top when the screen itself changed. Re-rendering in place
+    // — a refresh, opening a ministry card, adding one from a button at the
+    // bottom of a long province — used to throw the reader back to the top.
+    var view = state.tab + "/" + state.step;
+    if (view !== lastView) {
+      window.scrollTo(0, 0);
+      lastView = view;
+    }
+  }
+
+  var lastView = "";
+
+  // Rendered on its own, so opening and closing a province never touches the
+  // page underneath or moves the reader's scroll position.
+  function renderSheet() {
+    var root = document.getElementById("sheet");
+    if (!root) return;
+    root.innerHTML = provinceSheet();
+    // Stop the page behind scrolling while the sheet is up: on a phone the
+    // scroll otherwise runs through to the list and the reader loses their place.
+    document.body.classList.toggle("sheet-open", Boolean(state.detailProvince));
+  }
+
+  function openProvince(pid) {
+    state.detailProvince = pid;
+    renderSheet();
+  }
+
+  function closeProvince() {
+    if (!state.detailProvince) return;
+    state.detailProvince = null;
+    renderSheet();
   }
 
   function errorBox() {
@@ -736,7 +770,11 @@
   function renderResults() {
     // This is the landing page, so a failed load must not be a dead end — the
     // way into the form stays on screen.
-    if (state.resultsError) {
+    // Only a FIRST load takes over the screen. A refresh keeps the totals you
+    // were reading and says it is working in the button and the pull coin —
+    // blanking a page you are halfway down, to fetch figures you can already
+    // see, is the jumpiest thing an app can do.
+    if (state.resultsError && !state.results) {
       return (
         '<div class="card">' +
           '<div class="error">' + esc(state.resultsError) + "</div>" +
@@ -745,7 +783,18 @@
         reportButton()
       );
     }
-    if (state.loadingResults || !state.results) return '<div class="loading">Loading…</div>';
+    if (!state.results) {
+      return (
+        '<div class="loading">' +
+          '<img src="/favicon.svg" width="30" height="30" alt="" class="loading-mark" />' +
+          "<span>Loading…</span>" +
+        "</div>"
+      );
+    }
+
+    var staleWarning = state.resultsError
+      ? '<div class="error error-inline">' + esc(state.resultsError) + "</div>"
+      : "";
 
     var reports = state.results;
     var t = totalsFor(reports);
@@ -784,8 +833,10 @@
 
     var provinceRows = provinceIds.map(function (pid) {
       var row = t.byProvince[pid];
+      // A button, not a div: the row opens the province and everything in it,
+      // so it has to be reachable by keyboard and announce itself as pressable.
       return (
-        '<div class="prow">' +
+        '<button type="button" class="prow" data-province-detail="' + pid + '">' +
           '<div class="prow-head">' +
             '<span class="prow-name">' + esc(provinceName(pid)) + "</span>" +
             '<span class="prow-figs"><b class="num">' + fmt(row.staff) + "</b> staff" +
@@ -799,8 +850,9 @@
             // The one place campus ministries are shown, because this is where
             // they mean something: inside the province, under their campus.
             (row.campusMinistries ? " · " + row.campusMinistries + " campus " + plural(row.campusMinistries, "ministry", "ministries") : "") +
+            '<span class="prow-go" aria-hidden="true">›</span>' +
           "</div>" +
-        "</div>"
+        "</button>"
       );
     }).join("");
 
@@ -811,6 +863,8 @@
     }).join("");
 
     return (
+      staleWarning +
+
       hero(t) +
 
       section("Where we are", t.provinces + " of " + provinceUniverse(t) + " provinces",
@@ -841,7 +895,14 @@
 
       '<div class="glance-actions">' +
         '<button class="btn-ghost" data-action="download-csv">Download as a spreadsheet</button>' +
-        '<button class="btn-ghost" data-action="load-results">Refresh</button>' +
+        // Spins the same mark the pull coin does, so "we are fetching" looks the
+        // same however you asked for it.
+        '<button class="btn-ghost btn-refresh" data-action="load-results"' +
+          (state.loadingResults ? " disabled" : "") + ">" +
+          '<img src="/favicon.svg" width="16" height="16" alt="" class="btn-refresh-mark' +
+            (state.loadingResults ? " is-spinning" : "") + '" />' +
+          (state.loadingResults ? "Refreshing…" : "Refresh") +
+        "</button>" +
       "</div>"
     );
   }
@@ -990,6 +1051,92 @@
   // The one thing to do after reading the totals. The wording follows whether
   // there's already a draft on this phone, so a leader coming back mid-report
   // isn't invited to "add" one they have half written.
+  // ---------- one province, opened up ----------
+
+  // Tapping a province row opens everything reported in it. The totals screen
+  // is deliberately a set of national figures, so until now there was nowhere to
+  // see WHICH ministries a province actually has — which is most of what anyone
+  // wants to know once the headline has landed.
+  function provinceSheet() {
+    var pid = state.detailProvince;
+    if (!pid) return "";
+
+    var rows = [];
+    (state.results || []).forEach(function (r) {
+      (r.ministries || []).forEach(function (m) {
+        if (m.provinceId === pid) rows.push({ m: m, by: r.leaderName });
+      });
+    });
+
+    // Campus first, then its own ministries, then the separate locations —
+    // the shape of the place, rather than an alphabet.
+    var rank = { campus: 0, "campus-ministry": 1, location: 2 };
+    rows.sort(function (a, b) {
+      return (rank[kindOf(a.m)] - rank[kindOf(b.m)]) || (n(b.m.staffTotal) - n(a.m.staffTotal));
+    });
+
+    var t = totalsFor(state.results || []);
+    var row = t.byProvince[pid] || { ministries: 0, campuses: 0, campusMinistries: 0, staff: 0, weekly: 0 };
+
+    var body = rows.map(function (x) {
+      var m = x.m;
+      var facts = [];
+      if (m.staffTotal !== "" && m.staffTotal !== undefined) facts.push(fmt(n(m.staffTotal)) + " staff");
+      if (n(m.peopleWeekly)) facts.push(fmt(n(m.peopleWeekly)) + " a week");
+      if (n(m.villagesReached)) facts.push(fmt(n(m.villagesReached)) + " " + plural(n(m.villagesReached), "village", "villages"));
+      if (n(m.churchesLed) || n(m.churchesServed)) facts.push(n(m.churchesLed) + " led, " + n(m.churchesServed) + " served");
+
+      var year = [];
+      if (n(m.schoolGraduates)) year.push(fmt(n(m.schoolGraduates)) + " graduated");
+      if (n(m.newBelievers)) year.push(fmt(n(m.newBelievers)) + " new believers");
+      if (n(m.baptisms)) year.push(fmt(n(m.baptisms)) + " baptisms");
+
+      return (
+        '<article class="dsheet-row' + (isUnderCampus(m) ? " is-under" : "") + '">' +
+          '<div class="dsheet-name">' + esc(m.name || "Untitled ministry") +
+            (kindShort(m) ? ' <span class="tag">' + esc(kindShort(m)) + "</span>" : "") +
+          "</div>" +
+          (m.doing ? '<div class="dsheet-doing">' + esc(m.doing) + "</div>" : "") +
+          (m.leaderName ? '<div class="dsheet-by">Led by ' + esc(m.leaderName) + "</div>" : "") +
+          (facts.length ? '<div class="dsheet-facts">' + esc(facts.join(" · ")) + "</div>" : "") +
+          (year.length ? '<div class="dsheet-year">' + YEAR + ": " + esc(year.join(" · ")) + "</div>" : "") +
+          (m.biggestNeed ? '<div class="dsheet-need"><span>Biggest need</span> ' + esc(m.biggestNeed) + "</div>" : "") +
+        "</article>"
+      );
+    }).join("");
+
+    var sub = [row.ministries + " " + plural(row.ministries, "location", "locations")];
+    if (row.campuses) sub.push(row.campuses + " " + plural(row.campuses, "DTS campus", "DTS campuses"));
+    if (row.campusMinistries) sub.push(row.campusMinistries + " campus " + plural(row.campusMinistries, "ministry", "ministries"));
+
+    var reporters = {};
+    rows.forEach(function (x) { if (x.by) reporters[x.by] = true; });
+    var who = Object.keys(reporters);
+
+    return (
+      '<div class="dsheet-wrap" data-action="close-detail">' +
+        '<div class="dsheet" role="dialog" aria-modal="true" aria-label="' + esc(provinceName(pid)) + '">' +
+          '<div class="dsheet-grab" aria-hidden="true"></div>' +
+          '<div class="dsheet-head">' +
+            "<div>" +
+              '<h2 class="dsheet-title">' + esc(provinceName(pid)) + "</h2>" +
+              '<div class="dsheet-sub">' + esc(sub.join(" · ")) + "</div>" +
+            "</div>" +
+            '<button type="button" class="dsheet-x" data-action="close-detail" aria-label="Close">✕</button>' +
+          "</div>" +
+          '<div class="dsheet-figs">' +
+            '<div><b class="num">' + fmt(row.staff) + "</b><span>staff</span></div>" +
+            '<div><b class="num">' + fmt(row.weekly) + "</b><span>reached a week</span></div>" +
+          "</div>" +
+          '<div class="dsheet-body">' +
+            (body || '<p class="dsheet-empty">Nothing reported here yet.</p>') +
+            (who.length ? '<p class="dsheet-who">Reported by ' + esc(who.join(", ")) + "</p>" : "") +
+          "</div>" +
+        "</div>" +
+      "</div>"
+    );
+  }
+
   function reportButton() {
     var r = state.report;
     var started = r.ministries.length || r.provinceIds.length || r.leaderName.trim();
@@ -1145,7 +1292,8 @@
         state.loadingResults = false;
         if (!out.ok) {
           state.resultsError = (out.data && out.data.error) || "Could not load the totals.";
-          state.results = null;
+          // state.results is left alone on purpose: a failed refresh should cost
+          // you the new figures, not the ones you were already reading.
         } else {
           state.results = out.data.reports || [];
         }
@@ -1154,7 +1302,6 @@
       .catch(function () {
         state.loadingResults = false;
         state.resultsError = "No connection. Try again when you have signal.";
-        state.results = null;
         render();
       });
   }
@@ -1204,7 +1351,7 @@
 
   document.addEventListener("click", function (e) {
     var el = e.target.closest(
-      "[data-goto],[data-action],[data-province],[data-add-ministry],[data-toggle-ministry],[data-set-kind],[data-remove-ministry]"
+      "[data-goto],[data-action],[data-province],[data-province-detail],[data-add-ministry],[data-toggle-ministry],[data-set-kind],[data-remove-ministry]"
     );
     if (!el) return;
     var d = el.dataset;
@@ -1231,6 +1378,11 @@
     if (d.toggleMinistry) {
       state.openMinistry = state.openMinistry === d.toggleMinistry ? null : d.toggleMinistry;
       render();
+      return;
+    }
+
+    if (d.provinceDetail) {
+      openProvince(d.provinceDetail);
       return;
     }
 
@@ -1262,6 +1414,9 @@
     }
 
     switch (d.action) {
+      case "close-detail":
+        closeProvince();
+        break;
       case "show-all-provinces":
         state.showAllProvinces = true;
         render();
@@ -1335,6 +1490,87 @@
     saveDraft();
     render();
   }
+
+  // Escape closes the province sheet. It is the only thing on this app that
+  // sits over the page, so there is nothing to disambiguate.
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeProvince();
+  });
+
+  // ---------- pull to refresh ----------
+
+  // Only on the totals, only from the very top of the page, and only for a real
+  // downward drag. Anything looser and the gesture fires while someone is trying
+  // to scroll back up a long list, which reads as the app reloading at random.
+  (function pullToRefresh() {
+    var COIN = 64;      // travel at which the pull is armed
+    var MAX = 96;       // no point dragging further
+    var startY = null;
+    var pulled = 0;
+    var armed = false;
+
+    var el = document.createElement("div");
+    el.className = "ptr";
+    el.innerHTML = '<div class="ptr-coin"><img src="/favicon.svg" width="30" height="30" alt="" /></div>';
+    document.body.appendChild(el);
+
+    function set(px) {
+      el.style.transform = "translateY(" + px + "px)";
+      el.style.opacity = String(Math.min(1, px / COIN));
+      // Turning with the finger is what makes the coin feel attached to it —
+      // a coin that only slides looks like a loading image that got stuck.
+      var mark = el.firstChild;
+      if (mark) mark.style.transform = "rotate(" + px * 3 + "deg)";
+    }
+
+    function reset() {
+      el.classList.remove("is-pulling");
+      el.style.transform = "";
+      el.style.opacity = "";
+      var mark = el.firstChild;
+      // Cleared, not set to 0deg: the CSS spin can only take over an element
+      // that has no inline transform fighting it.
+      if (mark) mark.style.transform = "";
+      startY = null;
+      pulled = 0;
+      armed = false;
+    }
+
+    document.addEventListener("touchstart", function (e) {
+      if (state.tab !== "results" || state.detailProvince) return;
+      if (window.scrollY > 0 || e.touches.length !== 1) return;
+      // Drop out of the header rather than through it. The topbar is sticky and
+      // its height changes with the tab labels, so it is measured rather than
+      // guessed — a fixed offset put the coin on top of the tab buttons.
+      var bar = document.querySelector(".topbar");
+      el.style.top = (bar ? Math.round(bar.getBoundingClientRect().bottom) : 0) + "px";
+      startY = e.touches[0].clientY;
+      pulled = 0;
+    }, { passive: true });
+
+    document.addEventListener("touchmove", function (e) {
+      if (startY === null) return;
+      var dy = e.touches[0].clientY - startY;
+      if (dy <= 0) { if (!armed) startY = null; return; }
+      // Only claim the gesture once it is clearly a pull, so a diagonal swipe
+      // or a flick back up still belongs to the page.
+      if (!armed && dy < 8) return;
+      armed = true;
+      if (e.cancelable) e.preventDefault();
+      pulled = Math.min(MAX, dy * 0.5);
+      el.classList.add("is-pulling");
+      set(pulled);
+    }, { passive: false });
+
+    document.addEventListener("touchend", function () {
+      if (startY === null) return;
+      var go = pulled >= COIN * 0.75;
+      reset();
+      if (go && !state.loadingResults) loadResults();
+    }, { passive: true });
+
+    document.addEventListener("touchcancel", reset, { passive: true });
+  })();
 
   // ---------- go ----------
 
